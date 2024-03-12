@@ -1,7 +1,6 @@
 package com.mattermost.networkclient
 
 import android.net.Uri
-import android.os.Build
 import android.webkit.CookieManager
 import com.facebook.react.bridge.*
 import com.mattermost.networkclient.enums.APIClientEvents
@@ -24,10 +23,9 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.reflect.KProperty
 
-
-internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: ReadableMap? = null, cookieJar: CookieJar? = null, reactApplicationContext: ReactApplicationContext? = null) {
-    private var okHttpClient: OkHttpClient
-    private var webSocketUri: URI? = null
+internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
+    lateinit var okHttpClient: OkHttpClient
+    internal var webSocketUri: URI? = null
     var webSocket: WebSocket? = null
     var clientHeaders: WritableMap = Arguments.createMap()
     var clientRetryInterceptor: Interceptor? = null
@@ -35,7 +33,7 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
     val requestRetryInterceptors: HashMap<Request, Interceptor> = hashMapOf()
     val requestTimeoutInterceptors: HashMap<Request, TimeoutInterceptor> = hashMapOf()
     private var trustSelfSignedServerCertificate = false
-    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder()
+    val builder: OkHttpClient.Builder = OkHttpClient().newBuilder()
 
     private val BASE_URL_STRING = baseUrl.toString().trimTrailingSlashes()
     private val BASE_URL_HASH = BASE_URL_STRING.sha256()
@@ -54,18 +52,54 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         }
     }
 
-    constructor(webSocketUri: URI, baseUrl: HttpUrl, options: ReadableMap? = null, reactApplicationContext: ReactApplicationContext) : this(baseUrl, options) {
-        this.webSocketUri = webSocketUri
+    protected open fun applyGenericClientBuilderConfiguration() {
+        builder.followRedirects(true)
+        builder.followSslRedirects(true)
     }
 
-    init {
-        if (baseUrl == null) {
-            applyGenericClientBuilderConfiguration()
-        } else {
-            applyClientBuilderConfiguration(options, cookieJar)
-        }
-        okHttpClient = builder.build()
+    protected open fun applyClientBuilderConfiguration(options: ReadableMap?, cookieJar: CookieJar?) {
+        setClientHeaders(options)
+        setClientRetryInterceptor(options)
+        setClientTimeoutInterceptor(options)
 
+        builder.followRedirects(false)
+        builder.followSslRedirects(false)
+        builder.retryOnConnectionFailure(false)
+        builder.addInterceptor(RuntimeInterceptor(this as NetworkClient, "retry"))
+        builder.addInterceptor(RuntimeInterceptor(this, "timeout"))
+
+        val bearerTokenInterceptor = getBearerTokenInterceptor(options)
+        if (bearerTokenInterceptor != null) {
+            builder.addInterceptor(bearerTokenInterceptor)
+        }
+
+        val handshakeCertificates = buildHandshakeCertificates(options)
+        if (handshakeCertificates != null) {
+            builder.sslSocketFactory(
+                    handshakeCertificates.sslSocketFactory(),
+                    handshakeCertificates.trustManager
+            )
+        }
+
+        if (cookieJar != null) {
+            builder.cookieJar(cookieJar)
+        }
+
+        if (options != null && options.hasKey("sessionConfiguration")) {
+            val config = options.getMap("sessionConfiguration")!!
+
+            if (config.hasKey("httpMaximumConnectionsPerHost")) {
+                val maxConnections = config.getInt("httpMaximumConnectionsPerHost")
+                val dispatcher = Dispatcher()
+                dispatcher.maxRequests = maxConnections
+                dispatcher.maxRequestsPerHost = maxConnections
+                builder.dispatcher(dispatcher)
+            }
+
+            if (config.hasKey("enableCompression")) {
+                builder.minWebSocketMessageToCompress(0)
+            }
+        }
     }
 
     fun addClientHeaders(additionalHeaders: ReadableMap?) {
@@ -99,8 +133,7 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
                 requestHeaders = options.getMap("headers")
             }
             if (options.hasKey("body")) {
-                val type = options.getType("body")
-                when (type) {
+                when (options.getType("body")) {
                     ReadableType.Array -> {
                         val jsonBody = JSONArray(options.getArray("body")!!.toArrayList())
                         requestBody = jsonBody.toString().toRequestBody()
@@ -146,23 +179,8 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val map = response.toWritableMap()
-                if (map.getBoolean("ok")) {
-                    promise.resolve(map)
-                    cleanUpAfter(response)
-                    return
-                }
-                if (response.code == 404) {
-                    promise.reject("", "访问地址不存在")
-                    cleanUpAfter(response)
-                    return
-                }
-                if (map.hasKey("data")) {
-
-                    promise.reject("10", map.getString("data"), map)
-                    cleanUpAfter(response)
-                }
-
+                promise.resolve(response.toWritableMap())
+                cleanUpAfter(response)
             }
         })
     }
@@ -260,62 +278,14 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
 
     fun invalidate() {
         cancelAllRequests()
+        clearCache()
         clearCookies()
         APIClientModule.deleteValue(TOKEN_ALIAS)
         APIClientModule.deleteValue(P12_ALIAS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             KeyStoreHelper.deleteClientCertificates(P12_ALIAS)
         }
-    }
 
-    private fun applyGenericClientBuilderConfiguration() {
-        builder.followRedirects(true)
-        builder.followSslRedirects(true)
-    }
-
-    private fun applyClientBuilderConfiguration(options: ReadableMap?, cookieJar: CookieJar?) {
-        setClientHeaders(options)
-        setClientRetryInterceptor(options)
-        setClientTimeoutInterceptor(options)
-
-        builder.followRedirects(false)
-        builder.followSslRedirects(false)
-        builder.retryOnConnectionFailure(false)
-        builder.addInterceptor(RuntimeInterceptor(this, "retry"))
-        builder.addInterceptor(RuntimeInterceptor(this, "timeout"))
-
-        val bearerTokenInterceptor = getBearerTokenInterceptor(options)
-        if (bearerTokenInterceptor != null) {
-            builder.addInterceptor(bearerTokenInterceptor)
-        }
-
-        val handshakeCertificates = buildHandshakeCertificates(options)
-        if (handshakeCertificates != null) {
-            builder.sslSocketFactory(
-                    handshakeCertificates.sslSocketFactory(),
-                    handshakeCertificates.trustManager
-            )
-        }
-
-        if (cookieJar != null) {
-            builder.cookieJar(cookieJar)
-        }
-
-        if (options != null && options.hasKey("sessionConfiguration")) {
-            val config = options.getMap("sessionConfiguration")!!
-
-            if (config.hasKey("httpMaximumConnectionsPerHost")) {
-                val maxConnections = config.getInt("httpMaximumConnectionsPerHost")
-                val dispatcher = Dispatcher()
-                dispatcher.maxRequests = maxConnections
-                dispatcher.maxRequestsPerHost = maxConnections
-                builder.dispatcher(dispatcher)
-            }
-
-            if (config.hasKey("enableCompression")) {
-                builder.minWebSocketMessageToCompress(0)
-            }
-        }
     }
 
     private fun buildRequest(method: String, endpoint: String, headers: ReadableMap?, body: RequestBody?): Request {
@@ -347,25 +317,25 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         return multipartBody.build()
     }
 
-    private fun composeEndpointUrl(endpoint: String): String {
+    private fun composeEndpointUrl(endpoint: String) : String {
         if (baseUrl == null) {
             return endpoint
         }
 
-        var subpath = if (baseUrl.pathSegments.size > 0) baseUrl.pathSegments.joinToString("/") else ""
+        val pathname = if (baseUrl.pathSegments.isNotEmpty()) baseUrl.pathSegments.joinToString("/") else ""
 
         return baseUrl
-                .newBuilder(subpath + endpoint)?.build()
+                .newBuilder(pathname + endpoint)?.build()
                 .toString()
     }
 
-    private fun setClientHeaders(options: ReadableMap?) {
+    internal fun setClientHeaders(options: ReadableMap?) {
         if (options != null && options.hasKey(("headers"))) {
             addClientHeaders(options.getMap("headers"))
         }
     }
 
-    private fun getBearerTokenInterceptor(options: ReadableMap?): BearerTokenInterceptor? {
+    internal fun getBearerTokenInterceptor(options: ReadableMap?): BearerTokenInterceptor? {
         if (options != null && options.hasKey("requestAdapterConfiguration")) {
             val requestAdapterConfiguration = options.getMap("requestAdapterConfiguration")!!
             if (requestAdapterConfiguration.hasKey("bearerAuthTokenResponseHeader")) {
@@ -377,7 +347,7 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         return null
     }
 
-    private fun buildHandshakeCertificates(options: ReadableMap?): HandshakeCertificates? {
+    internal fun buildHandshakeCertificates(options: ReadableMap?): HandshakeCertificates? {
         if (options != null) {
             // `trustSelfSignedServerCertificate` can be in `options.sessionConfiguration` for
             // an APIClient or just in `options` for a WebSocketClient
@@ -420,9 +390,8 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
     private fun buildHandshakeCertificates(): HandshakeCertificates? {
         if (baseUrl == null)
             return null
-
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-            return null
+              return null
         val (heldCertificate, intermediates) = KeyStoreHelper.getClientCertificates(P12_ALIAS)
 
         if (!trustSelfSignedServerCertificate && heldCertificate == null)
@@ -455,13 +424,14 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             KeyStoreHelper.importClientCertificateFromP12(realPath, password, P12_ALIAS)
         }
+
     }
 
-    private fun setClientRetryInterceptor(options: ReadableMap?) {
+    internal fun setClientRetryInterceptor(options: ReadableMap?) {
         clientRetryInterceptor = createRetryInterceptor(options)
     }
 
-    private fun setClientTimeoutInterceptor(options: ReadableMap?) {
+    internal fun setClientTimeoutInterceptor(options: ReadableMap?) {
         var readTimeout = TimeoutInterceptor.defaultReadTimeout
         var writeTimeout = TimeoutInterceptor.defaultWriteTimeout
 
@@ -546,6 +516,21 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
 
     private fun cancelAllRequests() {
         okHttpClient.dispatcher.cancelAll()
+    }
+
+    private fun clearCache() {
+        if (baseUrl == null)
+            return
+
+        val domain = baseUrl.toString()
+        if (okHttpClient.cache != null) {
+            val urlIterator = okHttpClient.cache!!.urls()
+            while (urlIterator.hasNext()) {
+                if (urlIterator.next().startsWith(domain)) {
+                    urlIterator.remove()
+                }
+            }
+        }
     }
 
     private fun clearCookies() {
