@@ -1,6 +1,7 @@
 package com.mattermost.networkclient
 
 import android.net.Uri
+import android.os.Build
 import android.webkit.CookieManager
 import com.facebook.react.bridge.*
 import com.mattermost.networkclient.enums.APIClientEvents
