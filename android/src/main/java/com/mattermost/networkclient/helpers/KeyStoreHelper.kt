@@ -35,11 +35,11 @@ object KeyStoreHelper {
             "/" + KeyProperties.ENCRYPTION_PADDING_PKCS7
 
     private const val P12_KEY_ALIAS = "KEY"
-    private const val P12_CERTIFICATE_ALIAS = "CERTIFICATE"
+    private const val P12_CERTIFICATE_ALIAS= "CERTIFICATE"
 
     init {
-        loadAndroidKeyStore()
-        generateAndroidKeyIfNeeded()
+         loadAndroidKeyStore()
+         generateAndroidKeyIfNeeded()
     }
 
     fun encryptData(data: String): String {
