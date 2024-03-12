@@ -282,7 +282,10 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
         clearCookies()
         APIClientModule.deleteValue(TOKEN_ALIAS)
         APIClientModule.deleteValue(P12_ALIAS)
-        KeyStoreHelper.deleteClientCertificates(P12_ALIAS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            KeyStoreHelper.deleteClientCertificates(P12_ALIAS)
+        }
+
     }
 
     private fun buildRequest(method: String, endpoint: String, headers: ReadableMap?, body: RequestBody?): Request {
@@ -387,7 +390,8 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
     private fun buildHandshakeCertificates(): HandshakeCertificates? {
         if (baseUrl == null)
             return null
-
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
+              return null
         val (heldCertificate, intermediates) = KeyStoreHelper.getClientCertificates(P12_ALIAS)
 
         if (!trustSelfSignedServerCertificate && heldCertificate == null)
@@ -417,7 +421,10 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
     private fun importClientP12(p12FilePath: String, password: String) {
         val contentUri = Uri.parse(p12FilePath)
         val realPath = DocumentHelper.getRealPath(contentUri)
-        KeyStoreHelper.importClientCertificateFromP12(realPath, password, P12_ALIAS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            KeyStoreHelper.importClientCertificateFromP12(realPath, password, P12_ALIAS)
+        }
+
     }
 
     internal fun setClientRetryInterceptor(options: ReadableMap?) {
