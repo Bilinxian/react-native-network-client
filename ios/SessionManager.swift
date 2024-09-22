@@ -16,7 +16,7 @@ public class SessionManager: NSObject {
     @objc public static let `default` = SessionManager()
     private override init() {}
     internal var sessions: [URL: Session] = [:]
-    
+
     func sessionCount() -> Int {
         return sessions.count
     }
@@ -37,7 +37,16 @@ public class SessionManager: NSObject {
             return
         }
 
-        session = Session(configuration: configuration, delegate: delegate, rootQueue: rootQueue, interceptor: interceptor, redirectHandler: redirectHandler)
+        let serverTrustManager = ServerTrustManager(evaluators: [
+            "39.96.80.175": DisabledTrustEvaluator(),
+            "47.93.170.207": DisabledTrustEvaluator(),
+            "api.waisongbang.com": DisabledTrustEvaluator(),
+            "im.waisongbang.com": DisabledTrustEvaluator(),
+            "yy.waisongbang.com": DisabledTrustEvaluator(),
+            "product-service.waisongbang.com": DisabledTrustEvaluator(),
+            "www.cainiaoshicai.cn": DisabledTrustEvaluator(),
+        ])
+        session = Session(configuration: configuration, delegate: delegate, rootQueue: rootQueue, interceptor: interceptor, serverTrustManager: serverTrustManager, redirectHandler: redirectHandler)
         session?.baseUrl = baseUrl
         session?.retryPolicy = retryPolicy
         session?.cancelRequestsOnUnauthorized = cancelRequestsOnUnauthorized
@@ -54,7 +63,7 @@ public class SessionManager: NSObject {
                                                 userInfo: ["serverUrl": baseUrl.absoluteString, "errorCode": error._code, "errorDescription": error.localizedDescription])
             }
         }
-        
+
         sessions[baseUrl] = session
     }
 
@@ -90,25 +99,25 @@ public class SessionManager: NSObject {
                       withBearerAuthTokenResponseHeader: previousSession.bearerAuthTokenResponseHeader,
                       withTrustSelfSignedServerCertificate: previousSession.trustSelfSignedServerCertificate)
     }
-    
+
     func getSession(for baseUrl: URL) -> Session? {
         return sessions[baseUrl]
     }
-    
+
     func getSession(for urlSession: URLSession) -> Session? {
         guard let session = Array(sessions.values).first(where: {$0.session == urlSession}) else {
             return nil
         }
-        
+
         return session
     }
-    
+
     func getSession(for request: URLRequest) -> Session? {
         if let requestUrl = request.url {
             if let session = getSession(for: requestUrl) {
                 return session
             }
-            
+
             let port = requestUrl.port != nil ? ":\(String(requestUrl.port!))" : ""
             guard let scheme = requestUrl.scheme, let host = requestUrl.host, let hostUrl = URL(string: "\(scheme)://\(host)\(port)") else {
                 return nil
@@ -123,23 +132,23 @@ public class SessionManager: NSObject {
                 if let session = getSession(for: url) {
                     return session
                 }
-                
+
                 pathComponents.removeLast()
             }
-            
+
             if let session = getSession(for: hostUrl) {
                 return session
             }
         }
-        
+
         return nil
     }
-    
+
     func invalidateSession(for baseUrl: URL, withReset reset: Bool = false) -> Void {
         guard let session = getSession(for: baseUrl) else {
             return
         }
-        
+
         if reset {
             session.session.reset {
                 do {
