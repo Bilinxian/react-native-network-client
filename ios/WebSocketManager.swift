@@ -15,22 +15,22 @@ class WebSocketManager: NSObject {
     static let `default` = WebSocketManager()
     private override init() {}
     internal var webSockets: [URL: WebSocket] = [:]
-    
+
     func webSocketCount() -> Int {
         return webSockets.count
     }
-    
+
     func createWebSocket(for url:URL, withOptions options: Dictionary<String, Any>, withDelegate delegate: WebSocketClient) throws -> Void {
         let existingWebSocket = getWebSocket(for: url)
         if (existingWebSocket != nil) {
             existingWebSocket!.delegate = delegate
             return
         }
-        
+
         var request = URLRequest(url: url)
         var compressionHandler: CompressionHandler? = nil
         var clientCredential: URLCredential? = nil
-        var certPinner: FoundationSecurity? = nil
+        var certPinner = FoundationSecurity()
 
         let options = JSON(options)
         if options != JSON.null {
@@ -39,15 +39,15 @@ class WebSocketManager: NSObject {
                     request.addValue(value.stringValue, forHTTPHeaderField: key)
                 }
             }
-            
+
             if let timeoutInterval = options["timeoutInterval"].double {
                 request.timeoutInterval = timeoutInterval / 1000
             }
-            
+
             if let clientP12Configuration = options["clientP12Configuration"].dictionaryObject as? [String:String] {
                 let path = clientP12Configuration["path"]
                 let password = clientP12Configuration["password"]
-                
+
                 do {
                     try Keychain.importClientP12(withPath: path!, withPassword: password, forHost: url.host!)
                 } catch KeychainError.DuplicateIdentity {
@@ -59,11 +59,11 @@ class WebSocketManager: NSObject {
                 let (identity, certificate) = try Keychain.getClientIdentityAndCertificate(for: url.host!)!
                 clientCredential = URLCredential(identity: identity, certificates: [certificate], persistence: URLCredential.Persistence.permanent)
             }
-            
+
             if options["enableCompression"].boolValue {
                 compressionHandler = WSCompression()
             }
-            
+
             if options["trustSelfSignedServerCertificate"].boolValue {
                 certPinner = FoundationSecurity(allowSelfSigned: true)
             }
@@ -71,14 +71,14 @@ class WebSocketManager: NSObject {
 
         let webSocket = WebSocket(request: request, certPinner: certPinner, clientCredential: clientCredential, compressionHandler: compressionHandler)
         webSocket.delegate = delegate
-        
+
         webSockets[url] = webSocket
     }
-    
+
     func getWebSocket(for url:URL) -> WebSocket? {
         return webSockets[url]
     }
-    
+
     func disconnectAll() -> Void {
         for ws in webSockets {
             ws.value.disconnect()
@@ -89,7 +89,7 @@ class WebSocketManager: NSObject {
         guard let webSocket = getWebSocket(for: url) else {
             return
         }
-        
+
         if let _ = try? Keychain.getClientIdentityAndCertificate(for: url.host!) {
             do {
                 try Keychain.deleteClientP12(for: url.host!)
@@ -102,5 +102,10 @@ class WebSocketManager: NSObject {
         webSocket.forceDisconnect()
         webSocket.delegate = nil
         webSockets.removeValue(forKey: url)
+    }
+
+    func invalidateContext() -> Void {
+        disconnectAll()
+        webSockets.removeAll()
     }
 }

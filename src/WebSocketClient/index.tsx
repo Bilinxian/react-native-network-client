@@ -19,6 +19,7 @@ const Emitter = new NativeEventEmitter(NativeWebSocketClient);
 const { EVENTS, READY_STATE } = NativeWebSocketClient.getConstants();
 
 const CLIENTS: { [key: string]: WebSocketClient } = {};
+const CREATING_CLIENT: { [key: string]: boolean } = {};
 
 /**
  * Configurable WebSocket client
@@ -42,7 +43,7 @@ class WebSocketClient implements WebSocketClientInterface {
                 if (event.url === this.url) {
                     this.readyState = event.message as WebSocketReadyState;
                 }
-            }
+            },
         );
     }
 
@@ -64,7 +65,7 @@ class WebSocketClient implements WebSocketClientInterface {
                 if (event.url === this.url && callback) {
                     callback(event);
                 }
-            }
+            },
         );
     };
 
@@ -79,7 +80,7 @@ class WebSocketClient implements WebSocketClientInterface {
                 if (event.url === this.url && callback) {
                     callback(event);
                 }
-            }
+            },
         );
     };
 
@@ -94,7 +95,7 @@ class WebSocketClient implements WebSocketClientInterface {
                 if (event.url === this.url && callback) {
                     callback(event);
                 }
-            }
+            },
         );
     };
 
@@ -109,7 +110,7 @@ class WebSocketClient implements WebSocketClientInterface {
                 if (event.url === this.url && callback) {
                     callback(event);
                 }
-            }
+            },
         );
     };
 
@@ -124,7 +125,7 @@ class WebSocketClient implements WebSocketClientInterface {
                 if (event.url === this.url) {
                     callback(event);
                 }
-            }
+            },
         );
     };
 
@@ -145,7 +146,7 @@ class WebSocketClient implements WebSocketClientInterface {
 async function getOrCreateWebSocketClient(
     url: string,
     config: WebSocketClientConfiguration = {},
-    clientErrorEventHandler?: WebSocketClientErrorEventHandler
+    clientErrorEventHandler?: WebSocketClientErrorEventHandler,
 ): Promise<{ client: WebSocketClient; created: boolean }> {
     if (!isValidWebSocketURL(url)) {
         throw new Error(`"${url}" is not a valid WebSocket URL`);
@@ -154,13 +155,18 @@ async function getOrCreateWebSocketClient(
     let created = false;
     let client = CLIENTS[url];
     if (!client) {
+        if (CREATING_CLIENT[url]) {
+            throw new Error(`Already creating a client for url "${url}"`);
+        }
+        CREATING_CLIENT[url] = true;
         created = true;
         client = new WebSocketClient(url);
         if (clientErrorEventHandler) {
             client.onClientError(clientErrorEventHandler);
         }
-        await NativeWebSocketClient.createClientFor(url, config);
+        await NativeWebSocketClient.ensureClientFor(url, config);
         CLIENTS[url] = client;
+        delete CREATING_CLIENT[url];
     }
 
     return { client, created };

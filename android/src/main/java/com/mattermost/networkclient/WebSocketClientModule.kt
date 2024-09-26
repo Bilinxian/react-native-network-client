@@ -22,7 +22,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Re
         fun sendJSEvent(eventName: String, data: ReadableMap?) {
             if (context.hasActiveReactInstance()) {
                 context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                        .emit(eventName, data)
+                    .emit(eventName, data)
             }
         }
 
@@ -37,9 +37,28 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Re
 
     override fun invalidate() {
         super.invalidate()
-        clients.forEach {(_, value) ->
+        clients.forEach { (_, value) ->
             value.webSocket?.close(1000, null)
         }
+    }
+
+    @ReactMethod
+    fun ensureClientFor(wsUrl: String, options: ReadableMap, promise: Promise) {
+        var wsUri: URI
+        var baseUrl: HttpUrl
+        try {
+            wsUri = URI(wsUrl)
+            baseUrl = httpUrlFromURI(wsUri)
+        } catch (error: IllegalArgumentException) {
+            return promise.reject(error)
+        }
+
+        if (clients.containsKey(wsUri)) {
+            clients[wsUri]!!.webSocket?.close(1000, null)
+            clients.remove(wsUri);
+        }
+
+        createClientFor(wsUrl, options, promise);
     }
 
     @ReactMethod
@@ -51,6 +70,10 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Re
             baseUrl = httpUrlFromURI(wsUri)
         } catch (error: IllegalArgumentException) {
             return promise.reject(error)
+        }
+
+        if (clients.containsKey(wsUri)) {
+            return promise.reject("error", "already existing client for this websocket url");
         }
 
         try {
