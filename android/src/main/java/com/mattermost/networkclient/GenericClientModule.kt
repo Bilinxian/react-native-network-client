@@ -1,6 +1,10 @@
 package com.mattermost.networkclient
 
-import com.facebook.react.bridge.*
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
 import java.lang.Exception
 
 internal class GenericClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {

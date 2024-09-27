@@ -2,16 +2,26 @@ package com.mattermost.networkclient
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.facebook.react.bridge.*
+import android.os.Build
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 import com.facebook.react.modules.network.ForwardingCookieHandler
 import com.facebook.react.modules.network.ReactCookieJarContainer
 import com.mattermost.networkclient.enums.APIClientEvents
 import com.mattermost.networkclient.enums.RetryTypes
 import com.mattermost.networkclient.helpers.KeyStoreHelper
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.JavaNetCookieJar
+import okhttp3.Request
+import okhttp3.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -45,15 +55,17 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         }
 
         internal fun storeValue(value: String, alias: String) {
-            val encryptedValue = KeyStoreHelper.encryptData(value)
-            sharedPreferences.edit()
-                .putString(alias, encryptedValue)
-                .apply()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val encryptedValue = KeyStoreHelper.encryptData(value)
+                sharedPreferences.edit()
+                    .putString(alias, encryptedValue)
+                    .apply()
+            }
         }
 
         internal fun retrieveValue(alias: String): String? {
             val encryptedData = sharedPreferences.getString(alias, null)
-            if (encryptedData != null) {
+            if (encryptedData != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 return KeyStoreHelper.decryptData(encryptedData)
             }
 
@@ -62,14 +74,14 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
 
         internal fun deleteValue(alias: String) {
             sharedPreferences.edit()
-                    .remove(alias)
-                    .apply()
+                .remove(alias)
+                .apply()
         }
 
         internal fun sendJSEvent(eventName: String, data: WritableMap?) {
             if (context.hasActiveReactInstance()) {
                 context.getJSModule(RCTDeviceEventEmitter::class.java)
-                        .emit(eventName, data)
+                    .emit(eventName, data)
             }
         }
 
@@ -343,7 +355,7 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         return clients.containsKey(url)
     }
 
-    private fun request(method: String, baseUrl: String, endpoint: String, options: ReadableMap?, promise: Promise) {
+    private fun request(method: String, baseUrl: String, endpoint: String, promise: Promise) {
         try {
             val url = baseUrl.toHttpUrl()
             val client = clients[url]!!
