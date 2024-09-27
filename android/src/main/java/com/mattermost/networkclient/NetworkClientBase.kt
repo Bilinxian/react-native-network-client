@@ -3,25 +3,43 @@ package com.mattermost.networkclient
 import android.net.Uri
 import android.os.Build
 import android.webkit.CookieManager
-import com.facebook.react.bridge.*
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.ReadableType
+import com.facebook.react.bridge.WritableMap
 import com.mattermost.networkclient.enums.APIClientEvents
 import com.mattermost.networkclient.enums.RetryTypes
 import com.mattermost.networkclient.helpers.DocumentHelper
 import com.mattermost.networkclient.helpers.KeyStoreHelper
 import com.mattermost.networkclient.helpers.UploadFileRequestBody
-import com.mattermost.networkclient.interceptors.*
+import com.mattermost.networkclient.interceptors.BearerTokenInterceptor
+import com.mattermost.networkclient.interceptors.DownloadProgressInterceptor
+import com.mattermost.networkclient.interceptors.ExponentialRetryInterceptor
+import com.mattermost.networkclient.interceptors.LinearRetryInterceptor
+import com.mattermost.networkclient.interceptors.RuntimeInterceptor
+import com.mattermost.networkclient.interceptors.TimeoutInterceptor
 import com.mattermost.networkclient.interfaces.RetryInterceptor
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.CookieJar
+import okhttp3.Dispatcher
+import okhttp3.Dns
+import okhttp3.HttpUrl
+import okhttp3.Interceptor
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.WebSocket
 import okhttp3.internal.EMPTY_REQUEST
 import okhttp3.tls.HandshakeCertificates
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URI
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
+import java.util.Locale
 import kotlin.reflect.KProperty
 
 internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
@@ -34,7 +52,8 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
     val requestRetryInterceptors: HashMap<Request, Interceptor> = hashMapOf()
     val requestTimeoutInterceptors: HashMap<Request, TimeoutInterceptor> = hashMapOf()
     private var trustSelfSignedServerCertificate = false
-    val builder: OkHttpClient.Builder = OkHttpClient().newBuilder()
+    private val dns: Dns = ApiDNS()
+    val builder: OkHttpClient.Builder = OkHttpClient().newBuilder().dns(dns)
 
     private val BASE_URL_STRING = baseUrl.toString().trimTrailingSlashes()
     private val BASE_URL_HASH = BASE_URL_STRING.sha256()
@@ -120,6 +139,7 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
         val handshakeCertificates = buildHandshakeCertificates()
         if (handshakeCertificates != null) {
             okHttpClient = okHttpClient.newBuilder()
+                .dns(dns)
                 .sslSocketFactory(
                     handshakeCertificates.sslSocketFactory(),
                     handshakeCertificates.trustManager
@@ -299,6 +319,7 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
 
         return requestHeaders
     }
+
     private fun prepareRequestBody(method: String, options: ReadableMap?): RequestBody? {
         var requestBody: RequestBody? = null
 
@@ -309,19 +330,24 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
                         val jsonBody = JSONArray(options.getArray("body")!!.toArrayList())
                         requestBody = jsonBody.toString().toRequestBody()
                     }
+
                     ReadableType.Map -> {
                         val jsonBody = JSONObject(options.getMap("body")!!.toHashMap())
                         requestBody = jsonBody.toString().toRequestBody()
                     }
+
                     ReadableType.String -> {
                         requestBody = options.getString("body")!!.toRequestBody()
                     }
+
                     ReadableType.Null -> {
                         requestBody = EMPTY_REQUEST
                     }
+
                     ReadableType.Boolean -> {
                         requestBody = options.getBoolean("body").toString().toRequestBody()
                     }
+
                     ReadableType.Number -> {
                         requestBody = options.getDouble("body").toString().toRequestBody()
                     }
@@ -505,7 +531,8 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
             }
             if (config.hasKey("timeoutIntervalForRequest")) {
                 try {
-                    config.getDouble("timeoutIntervalForResource").toInt().also { writeTimeout = it }
+                    config.getDouble("timeoutIntervalForResource").toInt()
+                        .also { writeTimeout = it }
                 } catch (e: Exception) {
                     writeTimeout = 0
                 }

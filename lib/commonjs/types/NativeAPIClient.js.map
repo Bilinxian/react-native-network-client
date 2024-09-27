@@ -1,1 +1,0 @@
-{"version":3,"names":["APIClientEvents","RetryTypes"],"sourceRoot":"../../../src","sources":["types/NativeAPIClient.ts"],"mappings":";;;;;;AAAA;AACA;AAAA,IAUYA,eAAe;AAAA;AAAA,WAAfA,eAAe;EAAfA,eAAe;EAAfA,eAAe;EAAfA,eAAe;AAAA,GAAfA,eAAe,+BAAfA,eAAe;AAAA,IAMfC,UAAU;AAAA;AAAA,WAAVA,UAAU;EAAVA,UAAU;EAAVA,UAAU;AAAA,GAAVA,UAAU,0BAAVA,UAAU"}
