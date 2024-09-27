@@ -355,7 +355,7 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         return clients.containsKey(url)
     }
 
-    private fun request(method: String, baseUrl: String, endpoint: String, promise: Promise) {
+    private fun request(method: String, baseUrl: String, endpoint: String, options: ReadableMap?, promise: Promise) {
         try {
             val url = baseUrl.toHttpUrl()
             val client = clients[url]!!
