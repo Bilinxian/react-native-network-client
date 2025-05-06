@@ -300,9 +300,10 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
         cancelAllRequests()
         clearCache()
         clearCookies()
-        APIClientModule.deleteValue(TOKEN_ALIAS)
-        APIClientModule.deleteValue(P12_ALIAS)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            APIClientModule.deleteValue(TOKEN_ALIAS)
+            APIClientModule.deleteValue(P12_ALIAS)
             KeyStoreHelper.deleteClientCertificates(P12_ALIAS)
         }
 
@@ -475,12 +476,6 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
     private fun buildHandshakeCertificates(): HandshakeCertificates? {
         if (baseUrl == null)
             return null
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-            return null
-        val (heldCertificate, intermediates) = KeyStoreHelper.getClientCertificates(P12_ALIAS)
-
-        if (!trustSelfSignedServerCertificate && heldCertificate == null)
-            return null
 
         val builder = HandshakeCertificates.Builder()
             .addPlatformTrustedCertificates()
@@ -489,8 +484,11 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
             builder.addInsecureHost(baseUrl.host)
         }
 
-        if (heldCertificate != null) {
-            builder.heldCertificate(heldCertificate, *intermediates!!)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val (heldCertificate, intermediates) = KeyStoreHelper.getClientCertificates(P12_ALIAS)
+            if (heldCertificate != null) {
+                builder.heldCertificate(heldCertificate, *intermediates!!)
+            }
         }
 
         return builder.build()
@@ -504,9 +502,9 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
      * which we leave to the caller of this function to handle.
      */
     private fun importClientP12(p12FilePath: String, password: String) {
-        val contentUri = Uri.parse(p12FilePath)
-        val realPath = DocumentHelper.getRealPath(contentUri)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val contentUri = Uri.parse(p12FilePath)
+            val realPath = DocumentHelper.getRealPath(contentUri)
             KeyStoreHelper.importClientCertificateFromP12(realPath, password, P12_ALIAS)
         }
 
