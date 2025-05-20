@@ -485,9 +485,15 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val (heldCertificate, intermediates) = KeyStoreHelper.getClientCertificates(P12_ALIAS)
-            if (heldCertificate != null) {
-                builder.heldCertificate(heldCertificate, *intermediates!!)
+            try {
+                val (heldCertificate, intermediates) = KeyStoreHelper.getClientCertificates(
+                    P12_ALIAS
+                )
+                if (heldCertificate != null) {
+                    builder.heldCertificate(heldCertificate, *intermediates!!)
+                }
+            } catch (_: NoSuchProviderException) {
+
             }
         }
 
