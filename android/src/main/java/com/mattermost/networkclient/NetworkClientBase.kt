@@ -524,27 +524,31 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
     internal fun setClientTimeoutInterceptor(options: ReadableMap?) {
         var readTimeout = TimeoutInterceptor.defaultReadTimeout
         var writeTimeout = TimeoutInterceptor.defaultWriteTimeout
+        var connectTimeout = TimeoutInterceptor.defaultConnectTimeout
 
         if (options != null && options.hasKey("sessionConfiguration")) {
             val config = options.getMap("sessionConfiguration")!!
             if (config.hasKey("timeoutIntervalForRequest")) {
                 try {
                     config.getDouble("timeoutIntervalForRequest").toInt().also { readTimeout = it }
-                } catch (e: Exception) {
-                    readTimeout = 0
+                    config.getDouble("timeoutIntervalForRequest").toInt()
+                        .also { connectTimeout = it }
+
+                } catch (_: Exception) {
+
                 }
             }
-            if (config.hasKey("timeoutIntervalForRequest")) {
+            if (config.hasKey("timeoutIntervalForResource")) {
                 try {
                     config.getDouble("timeoutIntervalForResource").toInt()
                         .also { writeTimeout = it }
-                } catch (e: Exception) {
-                    writeTimeout = 0
+                } catch (_: Exception) {
+
                 }
             }
         }
 
-        clientTimeoutInterceptor = TimeoutInterceptor(readTimeout, writeTimeout)
+        clientTimeoutInterceptor = TimeoutInterceptor(readTimeout, writeTimeout, connectTimeout)
     }
 
     private fun createRetryInterceptor(
@@ -618,7 +622,11 @@ internal open class NetworkClientBase(private val baseUrl: HttpUrl? = null) {
     private fun createRequestTimeoutInterceptor(options: ReadableMap?): TimeoutInterceptor? {
         if (options != null && options.hasKey("timeoutInterval")) {
             val timeoutInterval = options.getDouble("timeoutInterval")
-            return TimeoutInterceptor(timeoutInterval.toInt(), timeoutInterval.toInt())
+            return TimeoutInterceptor(
+                timeoutInterval.toInt(),
+                timeoutInterval.toInt(),
+                timeoutInterval.toInt()
+            )
         }
 
         return null
