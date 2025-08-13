@@ -21,7 +21,7 @@ import type {
     RequestOptions,
     ProgressEvent,
     UploadRequestOptions,
-} from "@mattermost/react-native-network-client";
+} from "../types/APIClient";
 
 import {
     ApiClientEvents,

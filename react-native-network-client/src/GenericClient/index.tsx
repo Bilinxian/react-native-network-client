@@ -2,8 +2,8 @@
 // See LICENSE.txt for license information.
 
 import {validateRequestOptions} from "../schemas";
+import {ClientResponse, GenericClientInterface, RequestOptions} from "../types/APIClient";
 
-import type {GenericClientInterface, ClientResponse, RequestOptions} from "@mattermost/react-native-network-client";
 
 const NativeGenericClient = require("./NativeGenericClient").default;
 

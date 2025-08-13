@@ -1,7 +1,5 @@
 # react-native-network-client
 
-# 适配react native 0.80框架
-
 Configurable network clients for React Native. Uses Alamofire for iOS and OkHttp for Android.
 
 ## About

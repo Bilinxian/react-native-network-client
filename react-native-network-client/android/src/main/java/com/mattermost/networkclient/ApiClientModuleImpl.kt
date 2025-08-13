@@ -21,7 +21,6 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.JavaNetCookieJar
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.File
@@ -37,7 +36,6 @@ class ApiClientModuleImpl(appContext: Context) {
     private var uniqueId = ""
     private var version = ""
     private var request: Request? = null
-    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder().dns(ApiDNS())
 
     companion object {
         const val NAME = "ApiClient"
@@ -158,7 +156,7 @@ class ApiClientModuleImpl(appContext: Context) {
         }
 
         try {
-            clients[url] = NetworkClient(context, url,builder, options, cookieJar)
+            clients[url] = NetworkClient(context, url, options, cookieJar)
             promise.resolve(null)
         } catch (error: Exception) {
             promise.reject(error)
@@ -175,7 +173,7 @@ class ApiClientModuleImpl(appContext: Context) {
 
         try {
             if (clients[url] == null)
-                clients[url] = NetworkClient(context, url, builder,null, cookieJar)
+                clients[url] = NetworkClient(context, url, null, cookieJar)
 
         } catch (_: Exception) {
 

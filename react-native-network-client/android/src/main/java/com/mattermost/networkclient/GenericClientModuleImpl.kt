@@ -3,12 +3,10 @@ package com.mattermost.networkclient
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
-import okhttp3.OkHttpClient
 import java.lang.Exception
 
 class GenericClientModuleImpl(reactApplicationContext: ReactApplicationContext) {
-    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder().dns(ApiDNS())
-    private var client = NetworkClient(reactApplicationContext, null, builder)
+    private var client = NetworkClient(reactApplicationContext)
 
     companion object {
         const val NAME = "GenericClient"

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import android.webkit.CookieManager
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -50,7 +49,6 @@ const val CERTIFICATES_PATH = "certs"
 internal class NetworkClient(
     private val context: Context,
     private val baseUrl: HttpUrl? = null,
-    private val builder: OkHttpClient.Builder,
     options: ReadableMap? = null,
     cookieJar: CookieJar? = null
 ) {
@@ -65,7 +63,8 @@ internal class NetworkClient(
     var webSocket: WebSocket? = null
 
     private var trustSelfSignedServerCertificate = false
-
+    private val dns: Dns = ApiDNS()
+    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder().dns(dns)
     private var shouldCollectMetrics: Boolean = false
     private var metricsEventFactory: MetricsEventFactory? = null
 
@@ -89,10 +88,9 @@ internal class NetworkClient(
     constructor(
         context: ReactApplicationContext,
         webSocketUri: URI,
-        builder: OkHttpClient.Builder,
         baseUrl: HttpUrl,
         options: ReadableMap? = null
-    ) : this(context, baseUrl, builder, options) {
+    ) : this(context, baseUrl, options) {
         this.webSocketUri = webSocketUri
     }
 
@@ -292,9 +290,7 @@ internal class NetworkClient(
             }
 
             override fun onResponse(call: Call, response: Response) {
-
-                response.body.use { body -> body?.let { Log.d("NetworkClient", it.string()) } }
-                val metadata: RequestMetadata?
+                var metadata: RequestMetadata? = null
                 if (shouldCollectMetrics) {
                     metadata = metricsEventFactory?.getMetadata(call)
                     metadata?.networkType = getNetworkType(context)

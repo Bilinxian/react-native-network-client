@@ -3,12 +3,8 @@
 
 import * as z from "zod";
 
-import type {
-    APIClientConfiguration,
-    RequestOptions,
-    UploadRequestOptions,
-} from "@mattermost/react-native-network-client";
 import {RetryTypes} from "./APIClient/NativeApiClient";
+import {APIClientConfiguration, RequestOptions, UploadRequestOptions} from "./types/APIClient";
 
 const SessionConfigurationSchema = z.object({
     allowsCellularAccess: z.boolean().optional(),
@@ -67,9 +63,7 @@ const UploadRequestOptionsSchema = RequestOptionsSchema.extend({
     multipart: MultipartUploadConfigSchema.optional(),
 });
 
-export const validateAPIClientConfiguration = (
-    config: APIClientConfiguration,
-) => {
+export const validateAPIClientConfiguration = (config: APIClientConfiguration) => {
     const result = APIClientConfigurationSchema.safeParse(config);
     if (!result.success) {
         console.warn(result.error); // eslint-disable-line no-console
@@ -85,9 +79,7 @@ export const validateRequestOptions = (options?: RequestOptions) => {
     }
 };
 
-export const validateUploadRequestOptions = (
-    options?: UploadRequestOptions,
-) => {
+export const validateUploadRequestOptions = (options?: UploadRequestOptions) => {
     if (options) {
         const result = UploadRequestOptionsSchema.safeParse(options);
         if (!result.success) {

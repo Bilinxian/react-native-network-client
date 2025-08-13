@@ -1,5 +1,5 @@
 {
-  "name": "@mattermost/react-native-network-client",
+  "name": "react-native-network-client",
   "version": "1.8.3",
   "description": "Configurable network clients for React Native. Uses Alamofire for iOS and OkHttp3 for Android.",
   "main": "src",
@@ -7,6 +7,7 @@
   "source": "src",
   "files": [
     "src",
+    "lib",
     "android",
     "ios",
     "cpp",
@@ -116,6 +117,21 @@
     }
   },
   "eslintIgnore": [
-    "node_modules/"
-  ]
+    "node_modules/",
+    "lib/"
+  ],
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
 }

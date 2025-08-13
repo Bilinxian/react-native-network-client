@@ -11,7 +11,8 @@ import type {
     WebSocketClientInterface,
     WebSocketEvent,
     WebSocketEventHandler,
-} from "@mattermost/react-native-network-client";
+} from "../types/WebSocketClient";
+
 import NativeWebSocketClient, {
     WebSocketReadyState,
     WebSocketEvents,

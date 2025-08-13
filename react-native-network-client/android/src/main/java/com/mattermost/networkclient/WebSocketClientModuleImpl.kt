@@ -5,12 +5,10 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.OkHttpClient
 import java.net.URI
 
 class WebSocketClientModuleImpl(reactApplicationContext: ReactApplicationContext) {
     private val clients = mutableMapOf<URI, NetworkClient>()
-    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder().dns(ApiDNS())
 
     companion object {
         const val NAME = "WebSocketClient"
@@ -33,7 +31,7 @@ class WebSocketClientModuleImpl(reactApplicationContext: ReactApplicationContext
     }
 
     fun invalidate() {
-        clients.forEach { (_, value) ->
+        clients.forEach {(_, value) ->
             value.webSocket?.close(1000, null)
         }
     }
@@ -65,14 +63,11 @@ class WebSocketClientModuleImpl(reactApplicationContext: ReactApplicationContext
         }
 
         if (clients.containsKey(wsUri)) {
-            return promise.reject(
-                "WebSocket error",
-                "already existing client for this websocket url"
-            )
+            return promise.reject("WebSocket error", "already existing client for this websocket url")
         }
 
         try {
-            clients[wsUri] = NetworkClient(context, wsUri, builder, baseUrl, options)
+            clients[wsUri] = NetworkClient(context, wsUri, baseUrl, options)
             promise.resolve(null)
         } catch (error: Exception) {
             promise.reject(error)
