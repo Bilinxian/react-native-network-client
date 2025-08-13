@@ -1,17 +1,11 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import { NativeModules } from "react-native";
+import {validateRequestOptions} from "../schemas";
 
-import { validateRequestOptions } from "../schemas";
+import type {GenericClientInterface, ClientResponse, RequestOptions} from "@mattermost/react-native-network-client";
 
-const { GenericClient: NativeGenericClient } = NativeModules;
-
-import type {
-    GenericClientInterface,
-    ClientResponse,
-    RequestOptions,
-} from "@mattermost/react-native-network-client";
+const NativeGenericClient = require("./NativeGenericClient").default;
 
 /**
  * Generic client for making requests
@@ -33,19 +27,13 @@ class GenericClient implements GenericClientInterface {
         validateRequestOptions(options);
         return NativeGenericClient.post(url, options);
     };
-    patch = (
-        url: string,
-        options?: RequestOptions,
-    ): Promise<ClientResponse> => {
+    patch = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeGenericClient.patch(url, options);
     };
-    delete = (
-        url: string,
-        options?: RequestOptions,
-    ): Promise<ClientResponse> => {
+    delete = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.delete(url, options);
+        return NativeGenericClient.methodDelete(url, options);
     };
 }
 

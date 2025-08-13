@@ -10,9 +10,9 @@ class RCTOkHttpClientFactory : OkHttpClientFactory {
     }
     override fun createNewNetworkModuleClient(): OkHttpClient {
         return OkHttpClient()
-                .newBuilder()
-                .cookieJar(APIClientModule.cookieJar)
-                .addInterceptor(RCTClientRequestInterceptor())
-                .build()
+            .newBuilder()
+            .cookieJar(ApiClientModuleImpl.cookieJar)
+            .addInterceptor(RCTClientRequestInterceptor())
+            .build()
     }
 }

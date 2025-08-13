@@ -1,14 +1,7 @@
-//
-//  NetworkClient.swift
-//  NetworkClient
-//
-//  Created by Miguel Alatzar on 11/30/20.
-//  Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-//  See LICENSE.txt for license information.
-//
-
 import Alamofire
 import SwiftyJSON
+import Network
+import CoreTelephony
 
 let RETRY_TYPES = ["EXPONENTIAL_RETRY": "exponential", "LINEAR_RETRY": "linear"]
 
@@ -29,15 +22,16 @@ protocol NetworkClient {
     
     func handleResponse(for session: Session,
                         withUrl url: URL,
-                        withData data: AFDataResponse<Any>) -> Void
+                        withData data: AFDataResponse<Data?>) -> Void
     
     func resolveOrRejectDownloadResponse(_ response: AFDownloadResponse<URL>,
                                          for request: Request?,
                                          withResolver resolve: @escaping RCTPromiseResolveBlock,
                                          withRejecter reject: @escaping RCTPromiseRejectBlock)
     
-    func resolveOrRejectJSONResponse(_ json: AFDataResponse<Any>,
-                                     for request: Request?,
+    func resolveOrRejectResponse(_ json: AFDataResponse<Data?>,
+                                     for session: Session,
+                                     with request: Request?,
                                      withResolver resolve: @escaping RCTPromiseResolveBlock,
                                      withRejecter reject: @escaping RCTPromiseRejectBlock)
     
@@ -74,13 +68,13 @@ extension NetworkClient {
         let request = session.request(url, method: method, parameters: parameters, encoder: encoder, headers: headers, requestModifier: requestModifer)
             
         request.validate(statusCode: 200...409)
-            .responseJSON { json in
-                self.handleResponse(for: session, withUrl: url, withData: json)
-                self.resolveOrRejectJSONResponse(json, for: request, withResolver: resolve, withRejecter: reject)
+            .response { response in
+                self.handleResponse(for: session, withUrl: url, withData: response)
+                self.resolveOrRejectResponse(response, for: session, with: request, withResolver: resolve, withRejecter: reject)
         }
     }
     
-    func handleResponse(for session: Session, withUrl url: URL, withData data: AFDataResponse<Any>) -> Void {}
+    func handleResponse(for session: Session, withUrl url: URL, withData data: AFDataResponse<Data?>) -> Void {}
     
     func resolveOrRejectDownloadResponse(_ data: AFDownloadResponse<URL>,
                                          for request: Request? = nil,
@@ -133,52 +127,152 @@ extension NetworkClient {
         }
     }
     
-    func resolveOrRejectJSONResponse(_ json: AFDataResponse<Any>,
-                                     for request: Request? = nil,
+    func responseToAny(_ response: AFDataResponse<Data?>) -> Any? {
+        guard let data = response.data else {return nil}
+        do {
+            let json = try JSONSerialization.jsonObject(with: data, options: [])
+            return json
+        } catch {
+            if let responseString = String(data: data, encoding: .utf8) {
+                return responseString
+            }
+        }
+        
+        return nil
+    }
+    
+    func resolveOrRejectResponse(_ response: AFDataResponse<Data?>,
+                                     for session: Session,
+                                     with request: Request? = nil,
                                      withResolver resolve: @escaping RCTPromiseResolveBlock,
                                      withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
 
-        json.request?.removeRetryPolicy()
+        response.request?.removeRetryPolicy()
+        var metricsData: [String: Any]? = nil
         
-        switch (json.result) {
+        if session.collectMetrics {
+            var size = response.data?.count ?? 0
+            metricsData = [:]
+            metricsData!["size"] = size
+            
+            if let metrics = response.metrics?.transactionMetrics {
+                let compressedSize = metrics.compactMap { transaction in
+                    guard transaction.resourceFetchType == .networkLoad else { return nil }
+                    return transaction.countOfResponseBodyBytesReceived
+                }.reduce(0, +)
+                metricsData!["compressedSize"] = metrics.last?.countOfResponseBodyBytesReceived ?? compressedSize
+
+                let totalLatency = metrics.compactMap { transaction in
+                    (transaction.responseStartDate?.timeIntervalSince(transaction.fetchStartDate ?? Date()) ?? 0) * 1000
+                }.reduce(0, +)
+                metricsData!["latency"] = totalLatency
+                
+                let totalConnectionTime = metrics.compactMap { transaction in
+                    (transaction.connectEndDate?.timeIntervalSince(transaction.connectStartDate ?? Date()) ?? 0) * 1000
+                }.reduce(0, +)
+                metricsData!["connectionTime"] = totalConnectionTime
+                
+                if let fetchStart = metrics.first?.fetchStartDate,
+                   let responseEnd = metrics.last?.responseEndDate {
+                    var timeTaken = responseEnd.timeIntervalSince(fetchStart)
+
+                    
+                    // Ensure timeTaken is reasonable
+                    if timeTaken < 0.001 { // Cap minimum duration to avoid unrealistic speeds
+                        timeTaken = 0.001
+                    }
+                    
+                    metricsData!["startTime"] = fetchStart.timeIntervalSince1970
+                    metricsData!["endTime"] = responseEnd.timeIntervalSince1970
+                    metricsData!["speedInMbps"] = Double(metricsData!["compressedSize"] as! Int64 * 8) / (timeTaken * 1_000_000)
+                }
+                
+                if let lastTransaction = metrics.last {
+                    metricsData!["httpVersion"] = lastTransaction.networkProtocolName ?? "Unknown"
+
+                    let tlsProtocolVersion: String
+                    if let version = lastTransaction.negotiatedTLSProtocolVersion {
+                        switch version {
+                        case .TLSv12: tlsProtocolVersion = "TLS 1.2"
+                        case .TLSv13: tlsProtocolVersion = "TLS 1.3"
+                        case .DTLSv12:tlsProtocolVersion = "DTLS 1.2"
+                        default: tlsProtocolVersion = "Unknown (\(version))"
+                        }
+                    } else {
+                        tlsProtocolVersion = "None"
+                    }
+                    metricsData!["tlsVersion"] = tlsProtocolVersion
+                    metricsData!["tlsCipherSuite"] = lastTransaction.interpretCipherSuite()
+
+                    metricsData!["isCached"] = lastTransaction.resourceFetchType == .localCache
+                    metricsData!["networkType"] = getNetworkType()
+                }
+            }
+        }
+        
+        switch (response.result) {
         case .success:
             var ok = false
-            if let statusCode = json.response?.statusCode {
+            if let statusCode = response.response?.statusCode {
                 ok = (200 ... 299).contains(statusCode)
             }
-
-            var response = [
+            
+            var data = [
                 "ok": ok,
-                "headers": json.response?.allHeaderFields,
-                "data": json.value,
-                "code": json.response?.statusCode,
-            ]
+                "headers": response.response?.allHeaderFields,
+                "data": responseToAny(response),
+                "code": response.response?.statusCode,
+            ] as [String : Any?]
+            
+            if session.collectMetrics && metricsData != nil {
+                data["metrics"] = metricsData
+            }
+
             if let redirectUrls = getRedirectUrls(for: request!) {
-                response["redirectUrls"] = redirectUrls
+                data["redirectUrls"] = redirectUrls
             }
             
-            resolve(response)
+            resolve(data)
         case .failure(let error):
             var responseCode = error.responseCode
             var retriesExhausted = false
+
             if error.isRequestRetryError, let underlyingError = error.underlyingError {
                 responseCode = underlyingError.asAFError?.responseCode
                 retriesExhausted = true
             }
             
-            var response = [
+            if error.isServerTrustEvaluationError {
+                session.cancelAllRequests()
+                if let baseUrl = session.baseUrl {
+                    NotificationCenter.default.post(name: Notification.Name(ApiEvents.CLIENT_ERROR.rawValue),
+                                                    object: nil,
+                                                    userInfo: [
+                                                        "serverUrl": baseUrl.absoluteString,
+                                                        "errorCode": APIClientError.ServerTrustEvaluationFailed.errorCode,
+                                                        "errorDescription": error.localizedDescription])
+                }
+                
+            }
+            
+            var data = [
                 "ok": false,
-                "headers": json.response?.allHeaderFields,
-                "data": json.value,
+                "headers": response.response?.allHeaderFields,
+                "data": responseToAny(response),
                 "code": responseCode,
-                "retriesExhausted": retriesExhausted
-            ]
-            if let redirectUrls = getRedirectUrls(for: request!) {
-                response["redirectUrls"] = redirectUrls
+                "retriesExhausted": retriesExhausted,
+            ] as [String : Any?]
+
+            if let request = request, let redirectUrls = getRedirectUrls(for: request) {
+                data["redirectUrls"] = redirectUrls
+            }
+            
+            if session.collectMetrics && metricsData != nil {
+                data["metrics"] = metricsData
             }
             
             if responseCode != nil {
-                resolve(response)
+                resolve(data)
                 return
             }
 
@@ -285,5 +379,63 @@ extension NetworkClient {
         }
         
         return redirectUrls.count > 1 ? redirectUrls : nil
+    }
+    
+    func getNetworkType() -> String {
+        let monitor = NWPathMonitor()
+        var networkType = "Unknown"
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        let semaphore = DispatchSemaphore(value: 0)
+
+        monitor.pathUpdateHandler = { path in
+            if path.usesInterfaceType(.wifi) {
+                networkType = "Wi-Fi"
+            } else if path.usesInterfaceType(.cellular) {
+                let telephonyNetworkInfo = CTTelephonyNetworkInfo()
+                if let currentRadioAccessTechnology = telephonyNetworkInfo.serviceCurrentRadioAccessTechnology?.values.first {
+                    if #available(iOS 14.1, *) {
+                        switch currentRadioAccessTechnology {
+                        case CTRadioAccessTechnologyGPRS:
+                            networkType = "2G (GPRS)"
+                        case CTRadioAccessTechnologyEdge:
+                            networkType = "2G (EDGE)"
+                        case CTRadioAccessTechnologyWCDMA:
+                            networkType = "3G (WCDMA)"
+                        case CTRadioAccessTechnologyHSDPA:
+                            networkType = "3G (HSDPA)"
+                        case CTRadioAccessTechnologyHSUPA:
+                            networkType = "3G (HSUPA)"
+                        case CTRadioAccessTechnologyCDMA1x:
+                            networkType = "2G (CDMA1x)"
+                        case CTRadioAccessTechnologyCDMAEVDORev0, CTRadioAccessTechnologyCDMAEVDORevA, CTRadioAccessTechnologyCDMAEVDORevB:
+                            networkType = "3G (EVDO)"
+                        case CTRadioAccessTechnologyeHRPD:
+                            networkType = "3G (eHRPD)"
+                        case CTRadioAccessTechnologyLTE:
+                            networkType = "4G (LTE)"
+                        case CTRadioAccessTechnologyNRNSA, CTRadioAccessTechnologyNR:
+                            networkType = "5G"
+                        default:
+                            networkType = "Cellular (Unknown)"
+                        }
+                    } else {
+                        networkType = "Cellular"
+                    }
+                } else {
+                    networkType = "Cellular (Unknown)"
+                }
+            } else if path.usesInterfaceType(.wiredEthernet) {
+                networkType = "Wired Ethernet"
+            } else if path.usesInterfaceType(.loopback) {
+                networkType = "Loopback"
+            } else if path.usesInterfaceType(.other) {
+                networkType = "Other"
+            }
+            semaphore.signal()
+        }
+        monitor.start(queue: queue)
+        semaphore.wait() // Wait for network detection
+        monitor.cancel()
+        return networkType
     }
 }

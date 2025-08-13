@@ -1,7 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import type { RetryTypes } from "./NativeAPIClient";
+import type { EmitterSubscription } from "react-native";
+import type { RetryTypes } from "../APIClient/NativeApiClient";
 
 export interface ProgressPromise<T> extends Promise<T> {
     progress?: (
@@ -37,6 +38,21 @@ export type UploadRequestOptions = RequestOptions & {
     multipart?: MultipartUploadConfig;
 };
 
+export type ClientResponseMetrics = {
+    networkType: string;
+    tlsCipherSuite: string;
+    tlsVersion: string;
+    httpVersion: string;
+    isCached: boolean;
+    compressedSize: number;
+    size: number;
+    startTime: number;
+    endTime: number;
+    connectionTime: number;
+    latency: number;
+    speedInMbps: number;
+};
+
 export type ClientResponse = {
     headers?: ClientHeaders;
     data?: Record<string, unknown>;
@@ -45,6 +61,7 @@ export type ClientResponse = {
     ok: boolean;
     retriesExhausted?: boolean;
     path?: string;
+    metrics?: ClientResponseMetrics;
 };
 
 export type ClientResponseError = {
@@ -110,6 +127,7 @@ export type SessionConfiguration = {
     httpMaximumConnectionsPerHost?: number;
     cancelRequestsOnUnauthorized?: boolean;
     trustSelfSignedServerCertificate?: boolean;
+    collectMetrics?: boolean;
 };
 
 export type RetryPolicyConfiguration = {

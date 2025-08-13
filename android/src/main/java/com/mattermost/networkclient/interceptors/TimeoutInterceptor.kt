@@ -6,19 +6,19 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class TimeoutInterceptor(
-    private val readTimeout: Int,
-    private val writeTimeout: Int,
-    private val connectTimeout: Int
+        private val readTimeout: Int,
+        private val writeTimeout: Int,
+        private val connectTimeout: Int
 ) : Interceptor {
     companion object {
-        const val defaultReadTimeout = 60000
-        const val defaultWriteTimeout = 60000
-        const val defaultConnectTimeout = 60000
+        const val DEFAULT_READ_TIMEOUT = 60000
+        const val DEFAULT_WRITE_TIMEOUT = 60000
+        const val DEFAULT_CONNECT_TIMEOUT = 60000
     }
 
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request();
+        val request = chain.request()
 
         val newChain = chain
             .withConnectTimeout(connectTimeout, TimeUnit.MILLISECONDS)

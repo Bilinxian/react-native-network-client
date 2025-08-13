@@ -1,5 +1,7 @@
 # react-native-network-client
 
+# 适配react native 0.80框架
+
 Configurable network clients for React Native. Uses Alamofire for iOS and OkHttp for Android.
 
 ## About
@@ -20,15 +22,15 @@ You will also need to update your applications Podfile to use our fork of Starsc
 import GenericClient, {
   getOrCreateAPIClient,
   getOrCreateWebSocketClient,
-} from "react-native-network-client";
+} from "@mattermost/react-native-network-client";
 
 // ...
 
 const response = await GenericClient.get("https://community.mattermost.com");
-const { client: apiClient, created } = await getOrCreateAPIClient(
+const { client: apiClient, created: apiCreated } = await getOrCreateAPIClient(
   "https://community.mattermost.com"
 );
-const { client: wsClient, created } = await getOrCreateWebSocketClient(
+const { client: wsClient, created: wsCreated } = await getOrCreateWebSocketClient(
   "wss://community.mattermost.com"
 );
 ```
@@ -99,6 +101,7 @@ For both API client and WebSocket client, the following error codes apply:
   | Code | Reason                                                   |
   | ---- | -------------------------------------------------------- |
   | -200 | SSL handshake failed due to a missing client certificate |
+  | -299 | Server SSL certificate is not trusted or invalid         |
 
 ## Method Swizzling
 

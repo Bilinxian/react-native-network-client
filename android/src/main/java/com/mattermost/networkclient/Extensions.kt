@@ -1,16 +1,20 @@
 package com.mattermost.networkclient
 
-import com.facebook.react.bridge.*
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableArray
+import com.facebook.react.bridge.WritableMap
+import com.mattermost.networkclient.metrics.RequestMetadata
 import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
-import java.lang.Exception
 import java.security.MessageDigest
 
-var Response.retriesExhausted: Boolean? by NetworkClientBase.RequestRetriesExhausted
+
+var Response.retriesExhausted: Boolean? by NetworkClient.RequestRetriesExhausted
 
 /**
  * Composes an array of redirect URLs from all prior responses
@@ -40,31 +44,50 @@ fun Response.getRedirectUrls(): WritableArray? {
  *
  * @return WriteableMap for passing back to App
  */
-fun Response.toWritableMap(): WritableMap {
+fun Response.toWritableMap(metadata: RequestMetadata?): WritableMap {
     val map = Arguments.createMap()
+    val metrics = Arguments.createMap()
     map.putMap("headers", headers.toWritableMap())
     map.putInt("code", code)
     map.putBoolean("ok", isSuccessful)
 
-    if (body !== null) {
-        val bodyString = body!!.string()
+    body?.let { responseBody ->
+        val source = responseBody.source()
+        source.request(Long.MAX_VALUE)
+        val buffer = source.buffer.clone()
+
+        if (metadata != null) {
+            val compressedSize = header("X-Compressed-Size")?.toDoubleOrNull()
+                ?: header("Content-Length")?.toDoubleOrNull() ?: 0.0
+            val startTime = header("X-Start-Time")?.toDoubleOrNull() ?: 0.0
+            val endTime = header("X-End-Time")?.toDoubleOrNull() ?: 0.0
+            val mbps = header("X-Speed-Mbps")?.toDoubleOrNull() ?: 0.0
+            metrics.putDouble("compressedSize", compressedSize)
+            metrics.putDouble("size", buffer.size.toDouble())
+            metrics.putDouble("startTime", startTime)
+            metrics.putDouble("endTime", endTime)
+            metrics.putDouble("speedInMbps", mbps)
+        }
+
+        val bodyString = buffer.readUtf8()
         try {
             when (val json = JSONTokener(bodyString).nextValue()) {
                 is JSONArray -> {
                     map.putArray("data", json.toWritableArray())
                 }
+
                 is JSONObject -> {
                     map.putMap("data", json.toWritableMap())
                 }
-                else -> {
 
-                    map.putString("data", bodyString)
+                else -> {
                     map.putBoolean("ok", false)
+                    map.putString("data", bodyString)
                 }
             }
         } catch (_: Exception) {
-            map.putString("data", bodyString)
             map.putBoolean("ok", false)
+            map.putString("data", bodyString)
         }
     }
 
@@ -75,6 +98,17 @@ fun Response.toWritableMap(): WritableMap {
     val redirectUrls = getRedirectUrls()
     if (redirectUrls != null) {
         map.putArray("redirectUrls", redirectUrls)
+    }
+
+    if (metadata != null) {
+        metrics.putDouble("latency", metadata.getLatency().toDouble())
+        metrics.putDouble("connectionTime", metadata.getConnectionTime().toDouble())
+        metrics.putString("httpVersion", metadata.httpVersion)
+        metrics.putString("tlsVersion", metadata.sslVersion ?: "None")
+        metrics.putString("tlsCipherSuite", metadata.sslCipher ?: "None")
+        metrics.putBoolean("isCached", metadata.isCached)
+        metrics.putString("networkType", metadata.networkType)
+        map.putMap("metrics", metrics)
     }
 
     return map
@@ -102,11 +136,12 @@ fun Response.toDownloadMap(path: String): WritableMap {
  *
  * @param headers ReadableMap of headers from the App
  */
-fun Request.Builder.applyHeaders(headers: ReadableMap?): Request.Builder {
-    if (headers != null){
-        for ((k, v) in headers.toHashMap()) {
+fun Request.Builder.applyHeaders(headers: Map<String, Any?>?): Request.Builder {
+    if (headers != null) {
+        for ((k, v) in headers) {
             this.removeHeader(k)
-            this.addHeader(k, v as String)
+            val value = v.let { v?.toString() ?: "" }
+            this.addHeader(k, value)
         }
     }
 
@@ -139,9 +174,9 @@ fun String.trimTrailingSlashes(): String {
  */
 fun String.sha256(): String {
     return MessageDigest
-            .getInstance("SHA-256")
-            .digest(toByteArray())
-            .fold("", { str, it -> str + "%02x".format(it) })
+        .getInstance("SHA-256")
+        .digest(toByteArray())
+        .fold("") { str, it -> str + "%02x".format(it) }
 }
 
 /**
@@ -156,27 +191,34 @@ fun JSONObject.toWritableMap(): WritableMap {
             is JSONObject -> {
                 map.putMap(key, value.toWritableMap())
             }
+
             is JSONArray -> {
                 map.putArray(key, value.toWritableArray())
             }
+
             is Boolean -> {
                 map.putBoolean(key, value)
             }
+
             is Int -> {
                 map.putInt(key, value)
             }
+
             is Double -> {
                 map.putDouble(key, value)
             }
+
             is Long -> {
                 map.putDouble(key, value.toDouble())
             }
+
             is String -> {
                 map.putString(key, value)
             }
+
             else -> {
                 if (value.equals(JSONObject.NULL)) {
-                    map.putNull(key);
+                    map.putNull(key)
                 } else {
                     map.putString(key, value.toString())
                 }
@@ -197,24 +239,31 @@ fun JSONArray.toWritableArray(): WritableArray {
             is JSONObject -> {
                 array.pushMap(value.toWritableMap())
             }
+
             is JSONArray -> {
                 array.pushArray(value.toWritableArray())
             }
+
             is Boolean -> {
                 array.pushBoolean(value)
             }
+
             is Int -> {
                 array.pushInt(value)
             }
+
             is Double -> {
                 array.pushDouble(value)
             }
+
             is Long -> {
                 array.pushDouble(value.toDouble())
             }
+
             is String -> {
                 array.pushString(value)
             }
+
             else -> {
                 if (value.equals(JSONObject.NULL)) {
                     array.pushNull()
@@ -225,4 +274,81 @@ fun JSONArray.toWritableArray(): WritableArray {
         }
     }
     return array
+}
+
+@Suppress("UNCHECKED_CAST")
+fun Array<Any?>.toWritableArray(): WritableArray? {
+    val writableArray = Arguments.createArray()
+    for (value in this) {
+        if (value == null) {
+            writableArray.pushNull()
+        } else if (value is Boolean) {
+            writableArray.pushBoolean((value as Boolean?)!!)
+        } else if (value is Double) {
+            writableArray.pushDouble((value as Double?)!!)
+        } else if (value is Int) {
+            writableArray.pushInt((value as Int?)!!)
+        } else if (value is String) {
+            writableArray.pushString(value as String?)
+        } else if (value is Map<*, *>) {
+            writableArray.pushMap((value as Map<String?, Any?>?)?.toWritableMap())
+        } else if (value is ReadableMap) {
+            writableArray.pushMap(value as ReadableMap?)
+        } else if (value.javaClass.isArray) {
+            writableArray.pushArray((value as Array<Any?>?)?.toWritableArray())
+        }
+    }
+    return writableArray
+}
+
+@Suppress("UNCHECKED_CAST")
+fun Map<String?, Any?>.toWritableMap(): WritableMap? {
+    val writableMap = Arguments.createMap()
+    for ((key, value) in this) {
+        if (value == null) {
+            writableMap.putNull(key!!)
+        } else if (value is Boolean) {
+            writableMap.putBoolean(key!!, (value as Boolean?)!!)
+        } else if (value is Double) {
+            writableMap.putDouble(key!!, (value as Double?)!!)
+        } else if (value is Int) {
+            writableMap.putInt(key!!, (value as Int?)!!)
+        } else if (value is String) {
+            writableMap.putString(key!!, value as String?)
+        } else if (value is Map<*, *>) writableMap.putMap(
+            key!!,
+            (value as Map<String?, Any?>?)?.toWritableMap()
+        ) else if (value.javaClass.isArray) {
+            writableMap.putArray(key!!, (value as Array<Any?>?)?.toWritableArray())
+        }
+    }
+    return writableMap
+}
+
+@Suppress("UNCHECKED_CAST")
+fun ReadableMap.toWritableMap(): WritableMap {
+    val writableMap = Arguments.createMap()
+    val iterator = toHashMap().iterator()
+    while (iterator.hasNext()) {
+        val (key, value) = iterator.next()
+        if (value == null) {
+            writableMap.putNull(key)
+        } else if (value is Boolean) {
+            writableMap.putBoolean(key, (value))
+        } else if (value is Double) {
+            writableMap.putDouble(key, (value))
+        } else if (value is Int) {
+            writableMap.putInt(key, (value))
+        } else if (value is String) {
+            writableMap.putString(key, value)
+        } else if (value is Map<*, *>) writableMap.putMap(
+            key,
+            (value as Map<String?, Any?>).toWritableMap()
+        ) else if (value.javaClass.isArray) {
+            writableMap.putArray(key, (value as Array<Any?>).toWritableArray())
+        }
+        iterator.remove()
+    }
+
+    return writableMap
 }
