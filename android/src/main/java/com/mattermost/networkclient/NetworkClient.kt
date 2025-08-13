@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import android.webkit.CookieManager
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -290,7 +291,11 @@ internal class NetworkClient(
             }
 
             override fun onResponse(call: Call, response: Response) {
-                var metadata: RequestMetadata? = null
+                response.body?.use { body ->
+                    val content = body.string()
+                    Log.d("NetworkClient", content)
+                }
+                val metadata: RequestMetadata?
                 if (shouldCollectMetrics) {
                     metadata = metricsEventFactory?.getMetadata(call)
                     metadata?.networkType = getNetworkType(context)
