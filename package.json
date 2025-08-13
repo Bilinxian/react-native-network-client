@@ -7,7 +7,6 @@
   "source": "src",
   "files": [
     "src",
-    "lib",
     "android",
     "ios",
     "cpp",
@@ -117,21 +116,6 @@
     }
   },
   "eslintIgnore": [
-    "node_modules/",
-    "lib/"
-  ],
-  "react-native-builder-bob": {
-    "source": "src",
-    "output": "lib",
-    "targets": [
-      "commonjs",
-      "module",
-      [
-        "typescript",
-        {
-          "project": "tsconfig.build.json"
-        }
-      ]
-    ]
-  }
+    "node_modules/"
+  ]
 }
