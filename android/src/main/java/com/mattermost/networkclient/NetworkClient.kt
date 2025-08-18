@@ -6,6 +6,8 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import android.webkit.CookieManager
+import com.facebook.flipper.plugins.network.FlipperOkhttpInterceptor
+import com.facebook.flipper.plugins.network.NetworkFlipperPlugin
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -97,7 +99,7 @@ internal class NetworkClient(
 
     init {
         initCollectMetrics(options)
-
+        applyFlipperInterceptor()
         if (shouldCollectMetrics) {
             builder.addNetworkInterceptor(CompressedResponseSizeInterceptor())
         }
@@ -136,6 +138,12 @@ internal class NetworkClient(
                     metricsEventFactory = MetricsEventFactory()
                 }
             }
+        }
+    }
+
+    private fun applyFlipperInterceptor() {
+        if (RCTOkHttpClientFactory.flipperPlugin != null) {
+            builder.addNetworkInterceptor(FlipperOkhttpInterceptor(RCTOkHttpClientFactory.flipperPlugin as NetworkFlipperPlugin))
         }
     }
 
