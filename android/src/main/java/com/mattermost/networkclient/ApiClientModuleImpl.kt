@@ -447,7 +447,7 @@ class ApiClientModuleImpl(appContext: Context) {
         this.uniqueId = uniqueId
         this.version = version
 
-        val urlBuilder = "$host/ttlock/cashRegisterHeartBeat".toHttpUrlOrNull()?.newBuilder()
+        val urlBuilder = "${host}ttlock/cashRegisterHeartBeat".toHttpUrlOrNull()?.newBuilder()
         urlBuilder?.apply {
             addQueryParameter("vendor_id", vendorId)
             addQueryParameter("store_id", storeId)

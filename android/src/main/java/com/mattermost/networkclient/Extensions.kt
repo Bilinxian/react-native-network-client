@@ -14,7 +14,7 @@ import org.json.JSONTokener
 import java.security.MessageDigest
 
 
-var Response.retriesExhausted: Boolean? by NetworkClient.RequestRetriesExhausted
+var Response.retriesExhausted: Boolean? by NetworkClientBase.RequestRetriesExhausted
 
 /**
  * Composes an array of redirect URLs from all prior responses
