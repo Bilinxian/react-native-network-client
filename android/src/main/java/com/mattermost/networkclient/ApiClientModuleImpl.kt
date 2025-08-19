@@ -447,7 +447,8 @@ class ApiClientModuleImpl(appContext: Context) {
         this.uniqueId = uniqueId
         this.version = version
 
-        val urlBuilder = "${host}ttlock/cashRegisterHeartBeat".toHttpUrlOrNull()?.newBuilder()
+        val serverHost = if (host.endsWith("/")) host.removeSuffix("/") else host
+        val urlBuilder = "$serverHost/ttlock/cashRegisterHeartBeat".toHttpUrlOrNull()?.newBuilder()
         urlBuilder?.apply {
             addQueryParameter("vendor_id", vendorId)
             addQueryParameter("store_id", storeId)
@@ -459,7 +460,6 @@ class ApiClientModuleImpl(appContext: Context) {
 
         request = Request.Builder().url(url!!).build()
     }
-
 
 
     fun uploadHeartBeat(onHeartBeatError: (e: IOException) -> Unit) {
