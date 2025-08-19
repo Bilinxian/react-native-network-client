@@ -66,8 +66,7 @@ internal class NetworkClient(
     var webSocket: WebSocket? = null
 
     private var trustSelfSignedServerCertificate = false
-    private val dns: Dns = ApiDNS()
-    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder().dns(dns)
+    private val builder: OkHttpClient.Builder = OkHttpClient().newBuilder()
     private var shouldCollectMetrics: Boolean = false
     private var metricsEventFactory: MetricsEventFactory? = null
 
@@ -99,7 +98,6 @@ internal class NetworkClient(
 
     init {
         initCollectMetrics(options)
-        applyFlipperInterceptor()
         if (shouldCollectMetrics) {
             builder.addNetworkInterceptor(CompressedResponseSizeInterceptor())
         }
@@ -125,6 +123,8 @@ internal class NetworkClient(
         if (metricsEventFactory != null) {
             builder.eventListenerFactory(metricsEventFactory!!)
         }
+        applyFlipperInterceptor()
+        builder.dns(ApiDNS())
 
         okHttpClient = builder.build()
     }
@@ -143,7 +143,7 @@ internal class NetworkClient(
 
     private fun applyFlipperInterceptor() {
         if (RCTOkHttpClientFactory.flipperPlugin != null) {
-            builder.addNetworkInterceptor(FlipperOkhttpInterceptor(RCTOkHttpClientFactory.flipperPlugin as NetworkFlipperPlugin))
+            builder.addNetworkInterceptor(FlipperOkhttpInterceptor(RCTOkHttpClientFactory.flipperPlugin))
         }
     }
 
