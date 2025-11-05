@@ -14,7 +14,7 @@ import SwiftyJSON
 class WebSocketManager: NSObject {
     static let `default` = WebSocketManager()
     private override init() {}
-    internal var webSockets: [URL: WebSocket] = [:]
+    internal var webSockets: [URL: Starscream.WebSocket] = [:]
 
     func webSocketCount() -> Int {
         return webSockets.count
@@ -69,13 +69,13 @@ class WebSocketManager: NSObject {
             }
         }
 
-        let webSocket = WebSocket(request: request, certPinner: certPinner, clientCredential: clientCredential, compressionHandler: compressionHandler)
+        let webSocket = Starscream.WebSocket(request: request, certPinner: certPinner, clientCredential: clientCredential, compressionHandler: compressionHandler)
         webSocket.delegate = delegate
 
         webSockets[url] = webSocket
     }
 
-    func getWebSocket(for url:URL) -> WebSocket? {
+    func getWebSocket(for url: URL) -> Starscream.WebSocket? {
         return webSockets[url]
     }
 
