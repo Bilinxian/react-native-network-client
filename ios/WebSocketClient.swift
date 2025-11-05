@@ -32,7 +32,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
     var emitter: RCTEventEmitter!
     var hasListeners: Bool!
     internal var errorCounter: [String: Int] = [:]
-    
+
     override init() {
         super.init()
         NotificationCenter.default.addObserver(self,
@@ -40,21 +40,21 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
                                                name: Notification.Name(WEBSOCKET_CLIENT_EVENTS["CLIENT_ERROR"]!),
                                                object: nil)
     }
-    
+
     deinit {
         NotificationCenter.default.removeObserver(self,
                                                   name: Notification.Name(WEBSOCKET_CLIENT_EVENTS["CLIENT_ERROR"]!),
                                                   object: nil)
     }
-    
+
     override static func requiresMainQueueSetup() -> Bool {
         return true
     }
-    
+
     override func constantsToExport() -> [AnyHashable : Any]! {
         return ["EVENTS": WEBSOCKET_CLIENT_EVENTS, "READY_STATE": READY_STATE]
     }
-    
+
     open override func supportedEvents() -> [String] {
         return Array(WEBSOCKET_CLIENT_EVENTS.values)
     }
@@ -67,7 +67,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
         hasListeners = false;
         WebSocketManager.default.disconnectAll()
     }
-    
+
     override func invalidate() {
          WebSocketManager.default.invalidateContext()
      }
@@ -92,7 +92,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
             rejectMalformed(url: urlString, withRejecter: reject)
             return
         }
-        
+
         guard WebSocketManager.default.getWebSocket(for: url) == nil else {
             rejectAlreadyExisting(withRejecter: reject);
             return
@@ -104,7 +104,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
             reject("\(error._code)", error.localizedDescription, error)
         }
     }
-    
+
     @objc(connectFor:withResolver:withRejecter:)
     func connectFor(urlString: String, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         guard let url = URL(string: urlString) else {
@@ -119,7 +119,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
         errorCounter[url.absoluteString] = 0
         resolve(webSocket.connect())
     }
-    
+
     @objc(disconnectFor:withResolver:withRejecter:)
     func disconnectFor(urlString: String, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         guard let url = URL(string: urlString) else {
@@ -131,7 +131,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
             rejectInvalidWebSocket(for: url, withRejecter: reject)
             return
         }
-        
+
         resolve(webSocket.disconnect(closeCode: 1000))
         let wsUrl = webSocket.request.url!.absoluteString
         if hasListeners {
@@ -152,7 +152,7 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
             return
         }
 
-        resolve(webSocket.write(string: data))    
+        resolve(webSocket.write(string: data))
     }
 
     @objc(invalidateClientFor:withResolver:withRejecter:)
@@ -161,45 +161,45 @@ class WebSocketClient: RCTEventEmitter, WebSocketDelegate {
             rejectMalformed(url: urlString, withRejecter: reject)
             return
         }
- 
-        resolve(WebSocketManager.default.invalidateClient(for: url)) 
+
+        resolve(WebSocketManager.default.invalidateClient(for: url))
     }
-    
+
     func rejectMalformed(url: String, withRejecter reject: RCTPromiseRejectBlock) -> Void {
         let message = "Malformed URL: \(url)"
         let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorBadURL, userInfo: [NSLocalizedDescriptionKey: message])
         reject("\(error.code)", message, error)
     }
-    
+
     func rejectInvalidWebSocket(for url: URL, withRejecter reject: RCTPromiseRejectBlock) -> Void {
         let message = "WebSocket for \(url.absoluteString) has been invalidated"
         let error = NSError(domain: NSCocoaErrorDomain, code: NSCoderValueNotFoundError, userInfo: [NSLocalizedDescriptionKey: message])
         reject("\(error.code)", message, error)
     }
-    
+
     func rejectAlreadyExisting(withRejecter reject: RCTPromiseRejectBlock) -> Void {
         let message = "already existing client for this websocket url"
         let error = NSError(domain: NSCocoaErrorDomain, code: NSKeyValueValidationError, userInfo: [NSLocalizedDescriptionKey: message])
         reject("\(error.code)", message, error)
     }
-    
+
     @objc(errorHandler:)
     func errorHandler(notification: Notification) {
         self.sendErrorEvent(for: notification.userInfo!["url"] as! String,
                             withErrorCode: notification.userInfo!["errorCode"] as! Int,
                             withErrorDescription: notification.userInfo!["errorDescription"] as! String)
     }
-    
+
     func sendErrorEvent(for url: String, withErrorCode errorCode: Int, withErrorDescription errorDescription: String) {
         if hasListeners {
             self.sendEvent(withName: WEBSOCKET_CLIENT_EVENTS["CLIENT_ERROR"],
                            body: ["url": url, "errorCode": errorCode, "errorDescription": errorDescription])
         }
     }
-    
+
     // MARK: WebSocketDelegate methods
-    
-    func didReceive(event: WebSocketEvent, client: WebSocket) {
+
+    func didReceive(event: Starscream.WebSocketEvent, client: Starscream.WebSocket) {
         let url = client.request.url!.absoluteString
 
         switch event {
