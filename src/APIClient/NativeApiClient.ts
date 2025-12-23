@@ -106,43 +106,43 @@ export interface Spec extends TurboModule {
     addListener: (eventType: string) => void;
     removeListeners: (count: Int32) => void;
 
-    head(
+    headAsync(
         baseUrl: string,
         endpoint: string | null,
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    get(
+    getAsync(
         baseUrl: string,
         endpoint: string | null,
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    put(
+    putAsync(
         baseUrl: string,
         endpoint: string | null,
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    post(
+    postAsync(
         baseUrl: string,
         endpoint: string | null,
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    patch(
+    patchAsync(
         baseUrl: string,
         endpoint: string | null,
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    methodDelete(
+    methodDeleteAsync(
         baseUrl: string,
         endpoint: string | null,
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    upload(
+    uploadAsync(
         baseUrl: string,
         endpoint: string | null,
         fileUrl: string,
@@ -150,7 +150,7 @@ export interface Spec extends TurboModule {
         options?: UploadRequestOptions,
     ): Promise<ClientResponse>;
 
-    download(
+    downloadAsync(
         baseUrl: string,
         endpoint: string | null,
         filePath: string,
@@ -158,24 +158,24 @@ export interface Spec extends TurboModule {
         options?: RequestOptions,
     ): Promise<ClientResponse>;
 
-    cancelRequest(taskId: string): Promise<void>;
+    cancelRequestAsync(taskId: string): Promise<void>;
 
-    createClientFor(
+    createClientForAsync(
         baseUrl: string,
         config?: ApiClientConfiguration,
     ): Promise<void>;
 
-    getClientHeadersFor(baseUrl: string): Promise<ClientHeaders>;
+    getClientHeadersForAsync(baseUrl: string): Promise<ClientHeaders>;
 
-    addClientHeadersFor(baseUrl: string, headers: ClientHeaders): Promise<void>;
+    addClientHeadersForAsync(baseUrl: string, headers: ClientHeaders): Promise<void>;
 
-    importClientP12For(
+    importClientP12ForAsync(
         baseUrl: string,
         path: string,
         password?: string,
     ): Promise<void>;
 
-    invalidateClientFor(baseUrl: string): Promise<void>;
+    invalidateClientForAsync(baseUrl: string): Promise<void>;
 
     setStoreInfo(storeId: string, vendorId: string, access_token: string, host: string, uniqueId: string, version: string): void
 

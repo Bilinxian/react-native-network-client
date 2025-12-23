@@ -23,7 +23,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Na
         // Keep: Required for RN built in Event Emitter Calls
     }
 
-    override fun ensureClientFor(url: String?, config: ReadableMap?, promise: Promise?) {
+    override fun ensureClientForAsync(url: String?, config: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || config == null || promise == null) {
             promise?.reject(Exception("missing parameter to create client"))
             return
@@ -31,7 +31,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Na
         implementation.ensureClientFor(url, config, promise)
     }
 
-    override fun createClientFor(url: String?, config: ReadableMap?, promise: Promise?) {
+    override fun createClientForAsync(url: String?, config: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || config == null || promise == null) {
             promise?.reject(Exception("missing parameter to create client"))
             return
@@ -39,7 +39,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Na
         implementation.createClientFor(url, config, promise)
     }
 
-    override fun connectFor(url: String?, promise: Promise?) {
+    override fun connectForAsync(url: String?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("missing parameter to connect client"))
             return
@@ -47,7 +47,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Na
         implementation.connectFor(url, promise)
     }
 
-    override fun disconnectFor(url: String?, promise: Promise?) {
+    override fun disconnectForAsync(url: String?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("missing parameter to disconnect client"))
             return
@@ -55,7 +55,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Na
         implementation.disconnectFor(url, promise)
     }
 
-    override fun sendDataFor(url: String?, data: String?, promise: Promise?) {
+    override fun sendDataForAsync(url: String?, data: String?, promise: Promise?) {
         if (url.isNullOrEmpty() || data.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("missing parameter to send data"))
             return
@@ -63,7 +63,7 @@ internal class WebSocketClientModule(reactContext: ReactApplicationContext) : Na
         implementation.sendDataFor(url, data, promise)
     }
 
-    override fun invalidateClientFor(url: String?, promise: Promise?) {
+    override fun invalidateClientForAsync(url: String?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("missing parameter to invalidate client"))
             return

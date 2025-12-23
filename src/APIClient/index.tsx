@@ -77,7 +77,7 @@ class APIClient implements APIClientInterface {
     };
 
     getHeaders = (): Promise<ClientHeaders> => {
-        return NativeApiClient.getClientHeadersFor(
+        return NativeApiClient.getClientHeadersForAsync(
             this.baseUrl,
         ) as Promise<ClientHeaders>;
     };
@@ -87,16 +87,16 @@ class APIClient implements APIClientInterface {
             ...headers,
         };
 
-        return NativeApiClient.addClientHeadersFor(this.baseUrl, headers);
+        return NativeApiClient.addClientHeadersForAsync(this.baseUrl, headers);
     };
     importClientP12 = (path: string, password?: string): Promise<void> => {
-        return NativeApiClient.importClientP12For(this.baseUrl, path, password);
+        return NativeApiClient.importClientP12ForAsync(this.baseUrl, path, password);
     };
     invalidate = (): Promise<void> => {
         this.onClientErrorSubscription?.remove();
         delete CLIENTS[this.baseUrl];
 
-        return NativeApiClient.invalidateClientFor(this.baseUrl);
+        return NativeApiClient.invalidateClientForAsync(this.baseUrl);
     };
 
     head = (
@@ -104,7 +104,7 @@ class APIClient implements APIClientInterface {
         options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeApiClient.head(
+        return NativeApiClient.headAsync(
             this.baseUrl,
             endpoint,
         ) as Promise<ClientResponse>;
@@ -114,7 +114,7 @@ class APIClient implements APIClientInterface {
         options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeApiClient.get(
+        return NativeApiClient.getAsync(
             this.baseUrl,
             endpoint,
             options as NativeRequestOptions,
@@ -125,7 +125,7 @@ class APIClient implements APIClientInterface {
         options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeApiClient.put(
+        return NativeApiClient.putAsync(
             this.baseUrl,
             endpoint,
             options as NativeRequestOptions,
@@ -136,7 +136,7 @@ class APIClient implements APIClientInterface {
         options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeApiClient.post(
+        return NativeApiClient.postAsync(
             this.baseUrl,
             endpoint,
             options as NativeRequestOptions,
@@ -147,7 +147,7 @@ class APIClient implements APIClientInterface {
         options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeApiClient.patch(
+        return NativeApiClient.patchAsync(
             this.baseUrl,
             endpoint,
             options as NativeRequestOptions,
@@ -158,7 +158,7 @@ class APIClient implements APIClientInterface {
         options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeApiClient.methodDelete(
+        return NativeApiClient.methodDeleteAsync(
             this.baseUrl,
             endpoint,
             options as NativeRequestOptions,
@@ -185,7 +185,7 @@ class APIClient implements APIClientInterface {
                     },
                 );
 
-                NativeApiClient.upload(
+                NativeApiClient.uploadAsync(
                     this.baseUrl,
                     endpoint,
                     fileUrl,
@@ -206,7 +206,7 @@ class APIClient implements APIClientInterface {
             return promise;
         };
 
-        promise.cancel = () => NativeApiClient.cancelRequest(taskId);
+        promise.cancel = () => NativeApiClient.cancelRequestAsync(taskId);
 
         return promise;
     };
@@ -231,7 +231,7 @@ class APIClient implements APIClientInterface {
                     },
                 );
 
-                NativeApiClient.download(
+                NativeApiClient.downloadAsync(
                     this.baseUrl,
                     endpoint,
                     filePath,
@@ -252,7 +252,7 @@ class APIClient implements APIClientInterface {
             return promise;
         };
 
-        promise.cancel = () => NativeApiClient.cancelRequest(taskId);
+        promise.cancel = () => NativeApiClient.cancelRequestAsync(taskId);
 
         return promise;
     };
@@ -274,7 +274,7 @@ async function getOrCreateAPIClient(
         if (clientErrorEventHandler) {
             client.onClientError(clientErrorEventHandler);
         }
-        await NativeApiClient.createClientFor(client.baseUrl, client.config);
+        await NativeApiClient.createClientForAsync(client.baseUrl, client.config);
         CLIENTS[baseUrl] = client;
         created = true;
     }

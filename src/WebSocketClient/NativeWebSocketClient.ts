@@ -37,18 +37,18 @@ export interface Spec extends TurboModule {
     addListener: (eventType: string) => void;
     removeListeners: (count: Int32) => void;
 
-    ensureClientFor: (
+    ensureClientForAsync: (
         url: string,
         config?: WebSocketClientConfiguration,
     ) => Promise<void>;
-    createClientFor: (
+    createClientForAsync: (
         url: string,
         config?: WebSocketClientConfiguration,
     ) => Promise<void>;
-    connectFor: (url: string) => Promise<void>;
-    disconnectFor(url: string): Promise<void>;
-    sendDataFor(url: string, data: string): Promise<void>;
-    invalidateClientFor(url: string): Promise<void>;
+    connectForAsync: (url: string) => Promise<void>;
+    disconnectForAsync(url: string): Promise<void>;
+    sendDataForAsync(url: string, data: string): Promise<void>;
+    invalidateClientForAsync(url: string): Promise<void>;
 }
 
 export default TurboModuleRegistry.get<Spec>("WebSocketClient") as Spec;

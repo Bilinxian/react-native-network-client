@@ -13,27 +13,27 @@ const NativeGenericClient = require("./NativeGenericClient").default;
 class GenericClient implements GenericClientInterface {
     head = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.head(url, options);
+        return NativeGenericClient.headAsync(url, options);
     };
     get = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.get(url, options);
+        return NativeGenericClient.getAsync(url, options);
     };
     put = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.put(url, options);
+        return NativeGenericClient.putAsync(url, options);
     };
     post = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.post(url, options);
+        return NativeGenericClient.postAsync(url, options);
     };
     patch = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.patch(url, options);
+        return NativeGenericClient.patchAsync(url, options);
     };
     delete = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
-        return NativeGenericClient.methodDelete(url, options);
+        return NativeGenericClient.methodDeleteAsync(url, options);
     };
 }
 

@@ -11,7 +11,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Nati
 
     override fun getName(): String = GenericClientModuleImpl.NAME
 
-    override fun head(url: String?, options: ReadableMap?, promise: Promise?) {
+    override fun headAsync(url: String?, options: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid HEAD request"))
             return
@@ -19,7 +19,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Nati
         implementation.head(url, options, promise)
     }
 
-    override fun get(url: String?, options: ReadableMap?, promise: Promise?) {
+    override fun getAsync(url: String?, options: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid GET request"))
             return
@@ -27,7 +27,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Nati
         implementation.get(url, options, promise)
     }
 
-    override fun put(url: String?, options: ReadableMap?, promise: Promise?) {
+    override fun putAsync(url: String?, options: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid PUT request"))
             return
@@ -35,7 +35,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Nati
         implementation.put(url, options, promise)
     }
 
-    override fun post(url: String?, options: ReadableMap?, promise: Promise?) {
+    override fun postAsync(url: String?, options: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid POST request"))
             return
@@ -43,7 +43,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Nati
         implementation.post(url, options, promise)
     }
 
-    override fun patch(url: String?, options: ReadableMap?, promise: Promise?) {
+    override fun patchAsync(url: String?, options: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid PATCH request"))
             return
@@ -51,7 +51,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Nati
         implementation.patch(url, options, promise)
     }
 
-    override fun methodDelete(url: String?, options: ReadableMap?, promise: Promise?) {
+    override fun methodDeleteAsync(url: String?, options: ReadableMap?, promise: Promise?) {
         if (url.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid DELETE request"))
             return

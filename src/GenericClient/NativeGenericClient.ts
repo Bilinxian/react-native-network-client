@@ -41,12 +41,12 @@ type RequestOptions = Readonly<{
 }>;
 
 export interface Spec extends TurboModule {
-    head(url: string, options?: RequestOptions): Promise<ClientResponse>;
-    get(url: string, options?: RequestOptions): Promise<ClientResponse>;
-    put(url: string, options?: RequestOptions): Promise<ClientResponse>;
-    post(url: string, options?: RequestOptions): Promise<ClientResponse>;
-    patch(url: string, options?: RequestOptions): Promise<ClientResponse>;
-    methodDelete(
+    headAsync(url: string, options?: RequestOptions): Promise<ClientResponse>;
+    getAsync(url: string, options?: RequestOptions): Promise<ClientResponse>;
+    putAsync(url: string, options?: RequestOptions): Promise<ClientResponse>;
+    postAsync(url: string, options?: RequestOptions): Promise<ClientResponse>;
+    patchAsync(url: string, options?: RequestOptions): Promise<ClientResponse>;
+    methodDeleteAsync(
         url: string,
         options?: RequestOptions,
     ): Promise<ClientResponse>;

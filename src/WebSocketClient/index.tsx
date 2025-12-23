@@ -49,12 +49,12 @@ class WebSocketClient implements WebSocketClientInterface {
         );
     }
 
-    open = () => NativeWebSocketClient.connectFor(this.url);
+    open = () => NativeWebSocketClient.connectForAsync(this.url);
     close = () => {
         this.readyState = WebSocketReadyState.CLOSED;
-        return NativeWebSocketClient.disconnectFor(this.url);
+        return NativeWebSocketClient.disconnectForAsync(this.url);
     };
-    send = (data: string) => NativeWebSocketClient.sendDataFor(this.url, data);
+    send = (data: string) => NativeWebSocketClient.sendDataForAsync(this.url, data);
 
     onOpen = (callback: WebSocketEventHandler) => {
         if (this.onWebSocketOpenSubscription) {
@@ -141,7 +141,7 @@ class WebSocketClient implements WebSocketClientInterface {
 
         delete CLIENTS[this.url];
 
-        return NativeWebSocketClient.invalidateClientFor(this.url);
+        return NativeWebSocketClient.invalidateClientForAsync(this.url);
     };
 }
 
@@ -166,7 +166,7 @@ async function getOrCreateWebSocketClient(
         if (clientErrorEventHandler) {
             client.onClientError(clientErrorEventHandler);
         }
-        await NativeWebSocketClient.ensureClientFor(url, config);
+        await NativeWebSocketClient.ensureClientForAsync(url, config);
         CLIENTS[url] = client;
         delete CREATING_CLIENT[url];
     }

@@ -30,7 +30,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         // Keep: Required for RN built in Event Emitter Calls
     }
 
-    override fun head(
+    override fun headAsync(
         baseUrl: String?,
         endpoint: String?,
         options: ReadableMap?,
@@ -43,7 +43,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.head(baseUrl, endpoint, options, promise)
     }
 
-    override fun get(
+    override fun getAsync(
         baseUrl: String?,
         endpoint: String?,
         options: ReadableMap?,
@@ -56,7 +56,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.get(baseUrl, endpoint, options, promise)
     }
 
-    override fun put(
+    override fun putAsync(
         baseUrl: String?,
         endpoint: String?,
         options: ReadableMap?,
@@ -69,7 +69,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.put(baseUrl, endpoint, options, promise)
     }
 
-    override fun post(
+    override fun postAsync(
         baseUrl: String?,
         endpoint: String?,
         options: ReadableMap?,
@@ -82,7 +82,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.post(baseUrl, endpoint, options, promise)
     }
 
-    override fun patch(
+    override fun patchAsync(
         baseUrl: String?,
         endpoint: String?,
         options: ReadableMap?,
@@ -95,7 +95,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.patch(baseUrl, endpoint, options, promise)
     }
 
-    override fun methodDelete(
+    override fun methodDeleteAsync(
         baseUrl: String?,
         endpoint: String?,
         options: ReadableMap?,
@@ -108,7 +108,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.delete(baseUrl, endpoint, options, promise)
     }
 
-    override fun upload(
+    override fun uploadAsync(
         baseUrl: String?,
         endpoint: String?,
         fileUrl: String?,
@@ -123,7 +123,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.upload(baseUrl, endpoint, fileUrl, taskId, options, promise)
     }
 
-    override fun download(
+    override fun downloadAsync(
         baseUrl: String?,
         endpoint: String?,
         filePath: String?,
@@ -138,7 +138,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.download(baseUrl, endpoint, filePath, taskId, options, promise)
     }
 
-    override fun cancelRequest(taskId: String?, promise: Promise?) {
+    override fun cancelRequestAsync(taskId: String?, promise: Promise?) {
         if (taskId.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("invalid request cancellation"))
             return
@@ -146,7 +146,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.cancelRequest(taskId, promise)
     }
 
-    override fun createClientFor(baseUrl: String?, config: ReadableMap?, promise: Promise?) {
+    override fun createClientForAsync(baseUrl: String?, config: ReadableMap?, promise: Promise?) {
         if (baseUrl.isNullOrEmpty() || config == null || promise == null) {
             promise?.reject(Exception("missing parameters to create a client"))
             return
@@ -154,7 +154,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.createClientFor(baseUrl, config, promise)
     }
 
-    override fun getClientHeadersFor(baseUrl: String?, promise: Promise?) {
+    override fun getClientHeadersForAsync(baseUrl: String?, promise: Promise?) {
         if (baseUrl.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("missing parameters to get the headers for the client"))
             return
@@ -162,7 +162,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.getClientHeadersFor(baseUrl, promise)
     }
 
-    override fun addClientHeadersFor(baseUrl: String?, headers: ReadableMap?, promise: Promise?) {
+    override fun addClientHeadersForAsync(baseUrl: String?, headers: ReadableMap?, promise: Promise?) {
         if (baseUrl.isNullOrEmpty() || headers == null || promise == null) {
             promise?.reject(Exception("missing parameters to add headers to the client"))
             return
@@ -170,7 +170,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.addClientHeadersFor(baseUrl, headers, promise)
     }
 
-    override fun importClientP12For(
+    override fun importClientP12ForAsync(
         baseUrl: String?,
         path: String?,
         password: String?,
@@ -183,7 +183,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         implementation.importClientP12For(baseUrl, path, password, promise)
     }
 
-    override fun invalidateClientFor(baseUrl: String?, promise: Promise?) {
+    override fun invalidateClientForAsync(baseUrl: String?, promise: Promise?) {
         if (baseUrl.isNullOrEmpty() || promise == null) {
             promise?.reject(Exception("missing parameters to invalidate the client"))
             return
