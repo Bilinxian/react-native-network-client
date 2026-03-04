@@ -23,10 +23,7 @@ object KeyStoreHelper {
     private const val ANDROID_KEY_STORE_TYPE = "AndroidKeyStore"
     private const val ANDROID_KEY_ALIAS = "NetworkClientAndroidKeyStore"
     private lateinit var androidKeyStore: KeyStore
-    private var androidKeyGenerator = KeyGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_AES,
-            ANDROID_KEY_STORE_TYPE
-    )
+    private var androidKeyGenerator: KeyGenerator? = null
 
     private const val CIPHER_TRANSFORMATION = KeyProperties.KEY_ALGORITHM_AES +
             "/" + KeyProperties.BLOCK_MODE_CBC +
@@ -35,33 +32,72 @@ object KeyStoreHelper {
     private const val P12_KEY_ALIAS = "KEY"
     private const val P12_CERTIFICATE_ALIAS= "CERTIFICATE"
 
-    init {
-         loadAndroidKeyStore()
-         generateAndroidKeyIfNeeded()
+    private var initialized = false
+
+    private fun initialize() {
+        if (!initialized) {
+            try {
+                loadAndroidKeyStore()
+                androidKeyGenerator = KeyGenerator.getInstance(
+                    KeyProperties.KEY_ALGORITHM_AES,
+                    ANDROID_KEY_STORE_TYPE
+                )
+                generateAndroidKeyIfNeeded()
+                initialized = true
+            } catch (e: Exception) {
+                // Ignore exception to prevent app crash
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun loadAndroidKeyStore() {
+        try {
+            androidKeyStore = KeyStore.getInstance(ANDROID_KEY_STORE_TYPE).apply { load(null) }
+        } catch (e: Exception) {
+            // Ignore exception to prevent app crash
+            e.printStackTrace()
+        }
     }
 
     fun encryptData(data: String): String {
-        var temp = data
-        while (temp.toByteArray().size % 16 != 0) {
-            temp += "\u0020"
+        initialize()
+        try {
+            var temp = data
+            while (temp.toByteArray().size % 16 != 0) {
+                temp += "\u0020"
+            }
+
+            val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
+            val key = getAndroidKey() ?: return data
+            cipher.init(Cipher.ENCRYPT_MODE, key)
+            val ivBytes = cipher.iv
+            val encryptedBytes = cipher.doFinal(temp.toByteArray(Charsets.UTF_8))
+
+            return Base64.encodeToString(encryptedBytes, Base64.DEFAULT) +
+                    "," + Base64.encodeToString(ivBytes, Base64.DEFAULT)
+        } catch (e: Exception) {
+            // Ignore exception to prevent app crash
+            e.printStackTrace()
+            return data
         }
-
-        val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, getAndroidKey()!!)
-        val ivBytes = cipher.iv
-        val encryptedBytes = cipher.doFinal(temp.toByteArray(Charsets.UTF_8))
-
-        return Base64.encodeToString(encryptedBytes, Base64.DEFAULT) +
-                "," + Base64.encodeToString(ivBytes, Base64.DEFAULT)
     }
 
     fun decryptData(data: String): String {
-        val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
-        val (encryptedData, ivData) = data.split(",")
-        val spec = IvParameterSpec(Base64.decode(ivData, Base64.DEFAULT))
-        cipher.init(Cipher.DECRYPT_MODE, getAndroidKey()!!, spec)
+        initialize()
+        try {
+            val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
+            val (encryptedData, ivData) = data.split(",")
+            val spec = IvParameterSpec(Base64.decode(ivData, Base64.DEFAULT))
+            val key = getAndroidKey() ?: return data
+            cipher.init(Cipher.DECRYPT_MODE, key, spec)
 
-        return cipher.doFinal(Base64.decode(encryptedData, Base64.DEFAULT)).toString(Charsets.UTF_8).trim()
+            return cipher.doFinal(Base64.decode(encryptedData, Base64.DEFAULT)).toString(Charsets.UTF_8).trim()
+        } catch (e: Exception) {
+            // Ignore exception to prevent app crash
+            e.printStackTrace()
+            return data
+        }
     }
 
     fun importClientCertificateFromP12(p12FilePath: String, password: String, p12Alias: String) {
@@ -100,8 +136,8 @@ object KeyStoreHelper {
                 val heldCertificate = HeldCertificate(KeyPair(certificate.publicKey, key), certificate)
 
                 val intermediates = p12Store.getCertificateChain(keyAlias)
-                        .map { it as X509Certificate }
-                        .toTypedArray()
+                    .map { it as X509Certificate }
+                    .toTypedArray()
 
                 return Pair(heldCertificate, intermediates)
             }
@@ -114,32 +150,39 @@ object KeyStoreHelper {
         ApiClientModuleImpl.context.deleteFile(p12Alias)
     }
 
-    private fun loadAndroidKeyStore() {
-        androidKeyStore = KeyStore.getInstance(ANDROID_KEY_STORE_TYPE).apply { load(null) }
-    }
-
     private fun generateAndroidKeyIfNeeded() {
-        if (getAndroidKey() == null) {
-            val parameterSpec = KeyGenParameterSpec.Builder(
+        try {
+            if (getAndroidKey() == null && androidKeyGenerator != null) {
+                val parameterSpec = KeyGenParameterSpec.Builder(
                     ANDROID_KEY_ALIAS,
                     KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            )
+                )
                     .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
                     .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                     .setRandomizedEncryptionRequired(true)
                     .build()
 
-            androidKeyGenerator.init(parameterSpec)
-            androidKeyGenerator.generateKey()
+                androidKeyGenerator?.init(parameterSpec)
+                androidKeyGenerator?.generateKey()
+            }
+        } catch (e: Exception) {
+            // Ignore exception to prevent app crash
+            e.printStackTrace()
         }
     }
 
     private fun getAndroidKey(): SecretKey? {
-        if (!androidKeyStore.containsAlias(ANDROID_KEY_ALIAS))
-            return null
+        try {
+            if (!::androidKeyStore.isInitialized || !androidKeyStore.containsAlias(ANDROID_KEY_ALIAS))
+                return null
 
-        val secretKeyEntry = androidKeyStore.getEntry(ANDROID_KEY_ALIAS, null) as KeyStore.SecretKeyEntry
-        return secretKeyEntry.secretKey
+            val secretKeyEntry = androidKeyStore.getEntry(ANDROID_KEY_ALIAS, null) as KeyStore.SecretKeyEntry
+            return secretKeyEntry.secretKey
+        } catch (e: Exception) {
+            // Ignore exception to prevent app crash
+            e.printStackTrace()
+            return null
+        }
     }
 
     private fun getKeyEntryAlias(aliasPrefix: String): String {
