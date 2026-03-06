@@ -28,9 +28,11 @@ import {
     type RequestOptions as NativeRequestOptions,
     type Spec as NativeApiClientSpec,
 } from "./NativeApiClient";
+import {Int32} from "react-native/Libraries/Types/CodegenTypesNamespace";
+import {HeartBeatData} from "./NativeApiClient";
 
 const NativeApiClient: NativeApiClientSpec =
-    require("./NativeApiClient").default;
+  require("./NativeApiClient").default;
 const Emitter = new NativeEventEmitter(NativeApiClient);
 const CLIENTS: { [key: string]: APIClient } = {};
 
@@ -44,8 +46,8 @@ const DEFAULT_API_CLIENT_CONFIG: APIClientConfiguration = {
 };
 
 const generateTaskId = () =>
-    Math.random().toString(36).slice(-10) +
-    Math.random().toString(36).slice(-10);
+  Math.random().toString(36).slice(-10) +
+  Math.random().toString(36).slice(-10);
 
 /**
  * Configurable client for consuming a REST API
@@ -67,18 +69,18 @@ class APIClient implements APIClientInterface {
         }
 
         this.onClientErrorSubscription = Emitter.addListener(
-            ApiClientEvents.CLIENT_ERROR,
-            (event: APIClientErrorEvent) => {
-                if (event.serverUrl === this.baseUrl && callback) {
-                    callback(event);
-                }
-            },
+          ApiClientEvents.CLIENT_ERROR,
+          (event: APIClientErrorEvent) => {
+              if (event.serverUrl === this.baseUrl && callback) {
+                  callback(event);
+              }
+          },
         );
     };
 
     getHeaders = (): Promise<ClientHeaders> => {
         return NativeApiClient.getClientHeadersForAsync(
-            this.baseUrl,
+          this.baseUrl,
         ) as Promise<ClientHeaders>;
     };
     addHeaders = (headers: ClientHeaders): Promise<void> => {
@@ -100,105 +102,105 @@ class APIClient implements APIClientInterface {
     };
 
     head = (
-        endpoint: string,
-        options?: RequestOptions,
+      endpoint: string,
+      options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeApiClient.headAsync(
-            this.baseUrl,
-            endpoint,
+          this.baseUrl,
+          endpoint,
         ) as Promise<ClientResponse>;
     };
     get = (
-        endpoint: string,
-        options?: RequestOptions,
+      endpoint: string,
+      options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeApiClient.getAsync(
-            this.baseUrl,
-            endpoint,
-            options as NativeRequestOptions,
+          this.baseUrl,
+          endpoint,
+          options as NativeRequestOptions,
         ) as Promise<ClientResponse>;
     };
     put = (
-        endpoint: string,
-        options?: RequestOptions,
+      endpoint: string,
+      options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeApiClient.putAsync(
-            this.baseUrl,
-            endpoint,
-            options as NativeRequestOptions,
+          this.baseUrl,
+          endpoint,
+          options as NativeRequestOptions,
         ) as Promise<ClientResponse>;
     };
     post = (
-        endpoint: string,
-        options?: RequestOptions,
+      endpoint: string,
+      options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeApiClient.postAsync(
-            this.baseUrl,
-            endpoint,
-            options as NativeRequestOptions,
+          this.baseUrl,
+          endpoint,
+          options as NativeRequestOptions,
         ) as Promise<ClientResponse>;
     };
     patch = (
-        endpoint: string,
-        options?: RequestOptions,
+      endpoint: string,
+      options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeApiClient.patchAsync(
-            this.baseUrl,
-            endpoint,
-            options as NativeRequestOptions,
+          this.baseUrl,
+          endpoint,
+          options as NativeRequestOptions,
         ) as Promise<ClientResponse>;
     };
     delete = (
-        endpoint: string,
-        options?: RequestOptions,
+      endpoint: string,
+      options?: RequestOptions,
     ): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeApiClient.methodDeleteAsync(
-            this.baseUrl,
-            endpoint,
-            options as NativeRequestOptions,
+          this.baseUrl,
+          endpoint,
+          options as NativeRequestOptions,
         ) as Promise<ClientResponse>;
     };
     upload = (
-        endpoint: string,
-        fileUrl: string,
-        options?: UploadRequestOptions,
+      endpoint: string,
+      fileUrl: string,
+      options?: UploadRequestOptions,
     ): ProgressPromise<ClientResponse> => {
         validateUploadRequestOptions(options);
         const taskId = generateTaskId();
         const promise: ProgressPromise<ClientResponse> = new Promise(
-            (resolve, reject) => {
-                const uploadSubscription = Emitter.addListener(
-                    ApiClientEvents.UPLOAD_PROGRESS,
-                    (e: ProgressEvent) => {
-                        if (e.taskId === taskId && promise.onProgress) {
-                            promise.onProgress(
-                                e.fractionCompleted,
-                                e.bytesRead,
-                            );
-                        }
-                    },
-                );
+          (resolve, reject) => {
+              const uploadSubscription = Emitter.addListener(
+                ApiClientEvents.UPLOAD_PROGRESS,
+                (e: ProgressEvent) => {
+                    if (e.taskId === taskId && promise.onProgress) {
+                        promise.onProgress(
+                          e.fractionCompleted,
+                          e.bytesRead,
+                        );
+                    }
+                },
+              );
 
-                NativeApiClient.uploadAsync(
-                    this.baseUrl,
-                    endpoint,
-                    fileUrl,
-                    taskId,
-                    options as NativeRequestOptions,
-                )
-                    .then((response) => resolve(response as ClientResponse))
-                    .catch((error: unknown) => reject(error))
-                    .finally(() => {
-                        uploadSubscription.remove();
-                        delete promise.progress;
-                    });
-            },
+              NativeApiClient.uploadAsync(
+                this.baseUrl,
+                endpoint,
+                fileUrl,
+                taskId,
+                options as NativeRequestOptions,
+              )
+                .then((response) => resolve(response as ClientResponse))
+                .catch((error: unknown) => reject(error))
+                .finally(() => {
+                    uploadSubscription.remove();
+                    delete promise.progress;
+                });
+          },
         );
 
         promise.progress = (fn) => {
@@ -211,40 +213,40 @@ class APIClient implements APIClientInterface {
         return promise;
     };
     download = (
-        endpoint: string,
-        filePath: string,
-        options?: RequestOptions,
+      endpoint: string,
+      filePath: string,
+      options?: RequestOptions,
     ): ProgressPromise<ClientResponse> => {
         validateRequestOptions(options);
         const taskId = generateTaskId();
         const promise: ProgressPromise<ClientResponse> = new Promise(
-            (resolve, reject) => {
-                const downloadSubscription = Emitter.addListener(
-                    ApiClientEvents.DOWNLOAD_PROGRESS,
-                    (e: ProgressEvent) => {
-                        if (e.taskId === taskId && promise.onProgress) {
-                            promise.onProgress(
-                                e.fractionCompleted,
-                                e.bytesRead,
-                            );
-                        }
-                    },
-                );
+          (resolve, reject) => {
+              const downloadSubscription = Emitter.addListener(
+                ApiClientEvents.DOWNLOAD_PROGRESS,
+                (e: ProgressEvent) => {
+                    if (e.taskId === taskId && promise.onProgress) {
+                        promise.onProgress(
+                          e.fractionCompleted,
+                          e.bytesRead,
+                        );
+                    }
+                },
+              );
 
-                NativeApiClient.downloadAsync(
-                    this.baseUrl,
-                    endpoint,
-                    filePath,
-                    taskId,
-                    options as NativeRequestOptions,
-                )
-                    .then((response) => resolve(response as ClientResponse))
-                    .catch((error: unknown) => reject(error))
-                    .finally(() => {
-                        downloadSubscription.remove();
-                        delete promise.progress;
-                    });
-            },
+              NativeApiClient.downloadAsync(
+                this.baseUrl,
+                endpoint,
+                filePath,
+                taskId,
+                options as NativeRequestOptions,
+              )
+                .then((response) => resolve(response as ClientResponse))
+                .catch((error: unknown) => reject(error))
+                .finally(() => {
+                    downloadSubscription.remove();
+                    delete promise.progress;
+                });
+          },
         );
 
         promise.progress = (fn) => {
@@ -259,9 +261,9 @@ class APIClient implements APIClientInterface {
 }
 
 async function getOrCreateAPIClient(
-    baseUrl: string,
-    config: APIClientConfiguration = {},
-    clientErrorEventHandler?: APIClientErrorEventHandler,
+  baseUrl: string,
+  config: APIClientConfiguration = {},
+  clientErrorEventHandler?: APIClientErrorEventHandler,
 ): Promise<{ client: APIClient; created: boolean }> {
     if (!isValidBaseURL(baseUrl)) {
         throw new Error(`"${baseUrl}" is not a valid API base URL`);
@@ -298,14 +300,14 @@ const removeTrailingSlashes = (baseUrl: string) => {
 
 let heartBeatEmitter: EventSubscription
 const HeartBeat = {
-    setStoreInfo(storeId: string, vendorId: string, access_token: string, host: string, uniqueId: string, version: string) {
-        NativeApiClient.setStoreInfo(String(storeId), String(vendorId), String(access_token), String(host), String(uniqueId), String(version))
+    setStoreInfo(storeId: string, vendorId: string, access_token: string, host: string, uniqueId: string, version: string, buildNumber: Int32) {
+        NativeApiClient.setStoreInfo(String(storeId), String(vendorId), String(access_token), String(host), String(uniqueId), String(version), buildNumber)
     },
-    addListener(callback: (message: string) => void) {
+    addListener(callback: (message: HeartBeatData) => void) {
         if (heartBeatEmitter) {
             heartBeatEmitter.remove()
         }
-        heartBeatEmitter = NativeApiClient.onHeartBeatError(event => callback(event))
+        heartBeatEmitter = NativeApiClient.onHeartBeat(event => callback(event))
     },
     removeListener() {
         if (heartBeatEmitter) {

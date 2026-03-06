@@ -438,7 +438,8 @@ class ApiClientModuleImpl(appContext: Context) {
         accessToken: String,
         host: String,
         uniqueId: String,
-        version: String
+        version: String,
+        buildNumber: Double
     ) {
         this.storeId = storeId
         this.vendorId = vendorId
@@ -455,6 +456,7 @@ class ApiClientModuleImpl(appContext: Context) {
             addQueryParameter("device_no", uniqueId)
             addQueryParameter("version", version)
             addQueryParameter("access_token", accessToken)
+            addQueryParameter("build_number", buildNumber.toString())
         }
         val url = urlBuilder?.build()
 
@@ -462,13 +464,13 @@ class ApiClientModuleImpl(appContext: Context) {
     }
 
 
-    fun uploadHeartBeat(onHeartBeatError: (e: IOException) -> Unit) {
+    fun uploadHeartBeat(onHeartBeat: (content: String, e: String) -> Unit) {
 
         try {
             val url = host.toHttpUrl()
             val client = clients[url]
             if (request != null)
-                client?.heartBeat(request!!, onHeartBeatError)
+                client?.heartBeat(request!!, onHeartBeat)
 
         } catch (_: Exception) {
 

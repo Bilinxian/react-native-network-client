@@ -240,7 +240,7 @@ internal open class NetworkClientBase(
         })
     }
 
-    fun heartBeat(request: Request, onHeartBeatError: (e: IOException) -> Unit) {
+    fun heartBeat(request: Request, onHeartBeat: (content: String, e: String) -> Unit) {
         val call = okHttpClient.newCall(request)
         call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -248,12 +248,13 @@ internal open class NetworkClientBase(
                 if (e is SSLPeerUnverifiedException) {
                     cancelAllRequests()
                 }
-                onHeartBeatError(e)
+                onHeartBeat("", e.toString())
             }
 
             override fun onResponse(call: Call, response: Response) {
                 response.body?.use { body ->
                     val content = body.string()
+                    onHeartBeat(content, "")
                     Log.d("NetworkClient", content)
                 }
                 val metadata: RequestMetadata?

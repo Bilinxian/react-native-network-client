@@ -1,6 +1,7 @@
 package com.mattermost.networkclient
 
 import com.facebook.fbreact.specs.NativeApiClientSpec
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
@@ -197,7 +198,8 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
         accessToken: String?,
         host: String?,
         uniqueId: String?,
-        version: String?
+        version: String?,
+        buildNumber: Double
     ) {
         this.storeId = storeId ?: ""
         this.vendorId = vendorId ?: ""
@@ -211,14 +213,20 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
             this.accessToken,
             this.host,
             this.uniqueId,
-            this.version
+            this.version,
+            buildNumber
         )
         if (this.host.isNotEmpty())
             implementation.createClientFor(this.host)
     }
 
-    private fun handleHeartBeatError(e: IOException) {
-        emitOnHeartBeatError(e.toString())
+    private fun handleHeartBeat(content: String, e: String) {
+        val map = Arguments.createMap()
+
+        map.putBoolean("success", content.isNotEmpty())
+        map.putString("exception", e)
+        map.putString("content", content)
+        emitOnHeartBeat(map)
     }
 
     override fun initialize() {
@@ -228,7 +236,7 @@ class ApiClientModule(reactContext: ReactApplicationContext) : NativeApiClientSp
             heartTimerTask = object : TimerTask() {
                 override fun run() {
                     if (accessToken.isNotEmpty() && storeId.isNotEmpty())
-                        implementation.uploadHeartBeat(::handleHeartBeatError)
+                        implementation.uploadHeartBeat(::handleHeartBeat)
                 }
             }
         }

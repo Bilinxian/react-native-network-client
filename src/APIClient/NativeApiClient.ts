@@ -101,7 +101,11 @@ export enum ApiClientEvents {
     UPLOAD_PROGRESS = "ApiClient-UploadProgress",
     CLIENT_ERROR = "ApiClient-Error",
 }
-
+export type HeartBeatData = {
+    success: boolean,
+    exception: string,
+    content: string
+}
 export interface Spec extends TurboModule {
     addListener: (eventType: string) => void;
     removeListeners: (count: Int32) => void;
@@ -177,9 +181,9 @@ export interface Spec extends TurboModule {
 
     invalidateClientForAsync(baseUrl: string): Promise<void>;
 
-    setStoreInfo(storeId: string, vendorId: string, access_token: string, host: string, uniqueId: string, version: string): void
+    setStoreInfo(storeId: string, vendorId: string, access_token: string, host: string, uniqueId: string, version: string, buildNumber: Int32): void
 
-    readonly onHeartBeatError: EventEmitter<string>
+    readonly onHeartBeat: EventEmitter<HeartBeatData>
 }
 
 export default TurboModuleRegistry.get<Spec>("ApiClient") as Spec;
