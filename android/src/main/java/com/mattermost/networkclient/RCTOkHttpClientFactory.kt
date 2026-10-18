@@ -5,9 +5,6 @@ import com.mattermost.networkclient.interceptors.RCTClientRequestInterceptor
 import okhttp3.OkHttpClient
 
 class RCTOkHttpClientFactory : OkHttpClientFactory {
-    companion object {
-        var flipperPlugin: Object? = null
-    }
     override fun createNewNetworkModuleClient(): OkHttpClient {
         return OkHttpClient()
                 .newBuilder()

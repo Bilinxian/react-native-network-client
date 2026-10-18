@@ -1,10 +1,8 @@
 package com.mattermost.networkclient
 
-import com.facebook.flipper.plugins.network.FlipperOkhttpInterceptor
-import com.facebook.flipper.plugins.network.NetworkFlipperPlugin
-import com.facebook.react.bridge.*
-import com.mattermost.networkclient.interceptors.*
-import okhttp3.*
+import com.facebook.react.bridge.ReadableMap
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import java.net.URI
 
 internal class NetworkClient(baseUrl: HttpUrl? = null, options: ReadableMap? = null, cookieJar: CookieJar? = null): NetworkClientBase(baseUrl) {
@@ -33,8 +31,6 @@ internal class NetworkClient(baseUrl: HttpUrl? = null, options: ReadableMap? = n
     }
 
     private fun applyFlipperInterceptor() {
-        if (RCTOkHttpClientFactory.flipperPlugin != null) {
-            builder.addNetworkInterceptor(FlipperOkhttpInterceptor(RCTOkHttpClientFactory.flipperPlugin as NetworkFlipperPlugin))
-        }
+
     }
 }
